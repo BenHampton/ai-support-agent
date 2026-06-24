@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { listCustomers } from '../services/salesforce.ts'
+import { listCustomers } from '../integrations/salesforce.ts'
 
 export const customerRoutes = async (app: FastifyInstance): Promise<void> => {
   app.get('/customers', async () => {
