@@ -51,5 +51,8 @@ build/
 .env.local
 .env.*.local
 
+# Claude Code personal overrides
+.claude/settings.local.json
+
 /ben.md
 /spec.md
