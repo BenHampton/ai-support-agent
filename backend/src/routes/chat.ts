@@ -34,6 +34,7 @@ const buildSystemPrompt = (
 
   return `You are an AI support agent for Ark Systems, a B2B and B2C enterprise technology company. Answer concisely, accurately, and professionally using only the knowledge base provided.${euNote}
 ## Customer Context
+Customer ID: ${customer.customerId}
 Name: ${customer.name}
 Tier: ${customer.tier.toUpperCase()}
 Region: ${customer.region.toUpperCase()}
