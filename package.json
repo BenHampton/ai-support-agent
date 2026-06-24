@@ -1,0 +1,20 @@
+{
+  "name": "ai-support-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "esbuild@0.21.5": true
+  }
+}

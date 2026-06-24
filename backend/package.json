@@ -1,0 +1,20 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --import tsx/esm --watch src/server.ts",
+    "build": "tsc",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "fastify": "^4.28.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.11",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.3"
+  }
+}

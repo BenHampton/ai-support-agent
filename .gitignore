@@ -50,3 +50,6 @@ build/
 .env
 .env.local
 .env.*.local
+
+/ben.md
+/spec.md
