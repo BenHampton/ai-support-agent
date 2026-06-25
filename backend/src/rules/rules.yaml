@@ -57,6 +57,7 @@ returnWindows:
 rules:
   - name: vipBillingRule
     action: escalate
+    reason: "VIP customer with billing topic — immediate human escalation required"
     conditions:
       tier: vip
       keywordSet: billing
@@ -66,6 +67,7 @@ rules:
 
   - name: lowConfidenceRule
     action: escalate
+    reason: "Low knowledge confidence (max score: {maxScore}) — cannot reliably answer"
     conditions:
       maxScoreBelow: 0.4
     metadata:
@@ -73,6 +75,7 @@ rules:
 
   - name: regulatedTopicRule
     action: answer
+    reason: "Regulated topic detected — applying approved GDPR compliance language"
     conditions:
       keywordSet: gdpr
     metadata:
@@ -80,6 +83,7 @@ rules:
 
   - name: knownOutageRule
     action: route
+    reason: "Known ArkCloud EU outage detected — routing to incident macro"
     conditions:
       keywordSet: outage
       articleMatch:
@@ -98,12 +102,14 @@ rules:
 
   - name: refundEligibilityRule
     action: answer
+    reason: "Customer is {eligibleText} the {windowDays}-day return window (purchased {purchasedDaysAgo} days ago)"
     conditions:
       keywordSet: refund
       returnWindow: true
 
   - name: selfServeBillingRule
     action: answer
+    reason: "Non-VIP billing question — directing to self-serve portal or CSM"
     conditions:
       excludeTier: vip
       keywordSet: billing

@@ -18,6 +18,7 @@ type RuleConditions = {
 type YamlRule = {
   name: string
   action: RuleAction
+  reason: string
   conditions: RuleConditions
   metadata?: Record<string, unknown>
 }
@@ -83,7 +84,9 @@ const evaluateConditions = (
   if (conditions.returnWindow) {
     const windowDays = config.returnWindows[ctx.customer.region] ?? 30
     const age = daysSince(ctx.customer.purchaseDate)
-    computed['eligible'] = age <= windowDays
+    const eligible = age <= windowDays
+    computed['eligible'] = eligible
+    computed['eligibleText'] = eligible ? 'within' : 'outside'
     computed['purchasedDaysAgo'] = age
     computed['windowDays'] = windowDays
     computed['region'] = ctx.customer.region
@@ -92,28 +95,12 @@ const evaluateConditions = (
   return { passed: true, metadata: computed }
 }
 
-const buildReason = (rule: YamlRule, ctx: RuleContext, computed: Record<string, unknown>): string => {
-  switch (rule.name) {
-    case 'vipBillingRule':
-      return 'VIP customer with billing topic — immediate human escalation required'
-    case 'lowConfidenceRule':
-      return `Low knowledge confidence (max score: ${(computed['maxScore'] as number).toFixed(3)}) — cannot reliably answer`
-    case 'regulatedTopicRule':
-      return 'Regulated topic detected — applying approved GDPR compliance language'
-    case 'knownOutageRule':
-      return 'Known ArkCloud EU outage detected — routing to incident macro'
-    case 'refundEligibilityRule': {
-      const { eligible, windowDays, purchasedDaysAgo } = computed as { eligible: boolean; windowDays: number; purchasedDaysAgo: number }
-      return eligible
-        ? `Customer is within the ${windowDays}-day return window (purchased ${purchasedDaysAgo} days ago)`
-        : `Customer is outside the ${windowDays}-day return window (purchased ${purchasedDaysAgo} days ago)`
-    }
-    case 'selfServeBillingRule':
-      return `Non-VIP billing question — directing to self-serve portal or CSM`
-    default:
-      return `Rule ${rule.name} matched`
-  }
-}
+// interpolates {key} tokens in the YAML reason string from computed metadata
+const interpolateReason = (template: string, computed: Record<string, unknown>): string =>
+  template.replace(/\{(\w+)\}/g, (_, key) => {
+    const val = computed[key]
+    return typeof val === 'number' ? val.toFixed(3) : String(val ?? key)
+  })
 
 // evaluated in order — first match wins; order is defined in rules.yaml
 export const runRulesEngine = (
@@ -126,7 +113,7 @@ export const runRulesEngine = (
     const { passed, metadata: computed } = evaluateConditions(rule.conditions, ctx)
 
     if (passed) {
-      const reason = buildReason(rule, ctx, computed)
+      const reason = interpolateReason(rule.reason, computed)
       evaluations.push({ rule: rule.name, fired: true, reason })
       for (let j = i + 1; j < config.rules.length; j++) {
         evaluations.push({ rule: config.rules[j].name, fired: false, reason: 'earlier rule matched' })
