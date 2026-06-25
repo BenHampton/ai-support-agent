@@ -1,8 +1,9 @@
 import { SessionList } from './SessionList'
+import styles from './DashboardView.module.css'
 
-export const DashboardView = () => {
+export const DashboardView = (): JSX.Element => {
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#0f1117' }}>
+    <div className={styles.view}>
       <SessionList />
     </div>
   )
