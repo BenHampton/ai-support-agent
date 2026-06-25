@@ -32,16 +32,16 @@ npm workspaces monorepo. Shared types live in `/shared` at the root and are impo
 
 ```
 ai-support-agent/
-├── package.json               # npm workspaces: ["frontend", "backend"]
+├── package.json               # npm workspaces: ["ui", "api"]
 ├── shared/
 │   └── types.ts               # DecisionTrace, Customer, RuleResult, KnowledgeArticle, ZendeskTicket
-├── frontend/
+├── ui/
 │   └── src/
 │       ├── components/
 │       │   ├── Chat/          # Customer-facing chat UI
 │       │   └── Dashboard/     # FDE log viewer
 │       └── App.tsx
-└── backend/
+└── api/
     └── src/
         ├── routes/
         │   ├── chat.ts        # POST /chat
@@ -71,8 +71,8 @@ ollama pull nomic-embed-text
 npm run dev          # from root — starts frontend + backend concurrently
 
 # Individual
-cd backend && npm run dev    # port 3000
-cd frontend && npm run dev   # port 5173
+cd api && npm run dev    # port 3001
+cd ui && npm run dev     # port 5173
 ```
 
 ## Ark Systems Company Profile

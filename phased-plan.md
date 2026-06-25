@@ -17,11 +17,11 @@ ollama pull nomic-embed-text
 ## Phase 1 — Scaffold + Mock Data
 **Goal:** Both apps run, shared types resolve, mock data is defined, health route responds.
 
-- [ ] Root `package.json` — npm workspaces: `["frontend", "backend"]`, `dev` script runs both concurrently
+- [ ] Root `package.json` — npm workspaces: `["ui", "api"]`, `dev` script runs both concurrently
 - [ ] `shared/types.ts` — all shared types (`DecisionTrace`, `Customer`, `RuleResult`, `KnowledgeArticle`, `ZendeskTicket`)
-- [ ] Init `backend/` — Fastify + TypeScript, `tsconfig.json` with `paths: { "@shared/*": ["../shared/*"] }`
-- [ ] Init `frontend/` — Vite + React + TypeScript, `vite.config.ts` with alias `@shared → ../shared`
-- [ ] `backend/src/data/customers.ts` — 8 mock customers, 2 per tier (one US, one EU each):
+- [ ] Init `api/` — Fastify + TypeScript, `tsconfig.json` with `paths: { "@shared/*": ["../shared/*"] }`
+- [ ] Init `ui/` — Vite + React + TypeScript, `vite.config.ts` with alias `@shared → ../shared`
+- [ ] `api/src/data/customers.ts` — 8 mock customers, 2 per tier (one US, one EU each):
   - `consumer-us` — Consumer, US, standard warranty, purchased 7 days ago (refund eligible)
   - `consumer-eu` — Consumer, EU, standard warranty, purchased 60 days ago (outside return window)
   - `smb-us` — SMB, US, 10 seats, ArkBook Pro fleet
@@ -30,7 +30,7 @@ ollama pull nomic-embed-text
   - `enterprise-eu` — Enterprise, EU, contract, GDPR data processor agreement in place
   - `vip-us` — VIP, US, dedicated support pod, active ArkCloud contract
   - `vip-eu` — VIP, EU, dedicated support pod, recent billing dispute history
-- [ ] `backend/src/data/articles.ts` — 10 knowledge base articles, realistic 2-4 paragraph content:
+- [ ] `api/src/data/articles.ts` — 10 knowledge base articles, realistic 2-4 paragraph content:
   - `return-policy-us` — 30-day return window, direct purchase only, condition requirements, RMA process
   - `return-policy-eu` — 14-day statutory right of return, GDPR reference, how to initiate return online
   - `gdpr-data-privacy-eu` — approved compliance language, data retention periods, right to erasure process, DPO contact
@@ -41,7 +41,7 @@ ollama pull nomic-embed-text
   - `server-storage-support` — ARK-R Series common failures, RAID rebuilds, firmware updates, enterprise support portal
   - `enterprise-sla-tiers` — response SLAs by tier (SMB NBD, Enterprise 4hr, VIP 1hr), escalation contacts, CSM details
   - `billing-dispute-escalation` — self-serve portal for Consumer/SMB, CSM path for Enterprise, immediate handoff for VIP
-- [ ] `backend/src/data/tickets.ts` — in-memory Zendesk ticket store (empty array)
+- [ ] `api/src/data/tickets.ts` — in-memory Zendesk ticket store (empty array)
 - [ ] `GET /health` route → `{ status: 'ok' }`
 
 **Done when:** `npm run dev` at root starts both servers, and importing `@shared/types` resolves correctly in both frontend and backend.
@@ -51,9 +51,9 @@ ollama pull nomic-embed-text
 ## Phase 2 — Ollama Integration + RAG
 **Goal:** Knowledge search works end-to-end via the API.
 
-- [ ] `backend/src/services/ollama.ts` — `embed(text)` and `chat(messages, onChunk)` functions
+- [ ] `api/src/services/ollama.ts` — `embed(text)` and `chat(messages, onChunk)` functions
 - [ ] On server startup: embed all 10 articles → store as `{ id, text, embedding[], metadata }[]` in memory
-- [ ] `backend/src/services/knowledge.ts` — cosine similarity search, returns top-N matches with scores
+- [ ] `api/src/services/knowledge.ts` — cosine similarity search, returns top-N matches with scores
 - [ ] `GET /knowledge/search?q=<query>` route — returns top-3 articles with scores
 
 **Done when:** Hitting `/knowledge/search?q=how do I return a laptop` returns relevant articles with similarity scores.
@@ -63,9 +63,9 @@ ollama pull nomic-embed-text
 ## Phase 3 — Rules Engine + Mock Integrations
 **Goal:** All business rules evaluate correctly against mock customer data.
 
-- [ ] `backend/src/services/salesforce.ts` — `getCustomer(customerId)` lookup
-- [ ] `backend/src/services/zendesk.ts` — `createTicket(data)`, `getTickets()` against in-memory store
-- [ ] `backend/src/services/rules.ts` — 6 typed rule functions:
+- [ ] `api/src/services/salesforce.ts` — `getCustomer(customerId)` lookup
+- [ ] `api/src/services/zendesk.ts` — `createTicket(data)`, `getTickets()` against in-memory store
+- [ ] `api/src/services/rules.ts` — 6 typed rule functions:
   - `vipBillingRule` — VIP tier + billing topic → ESCALATE
   - `lowConfidenceRule` — max knowledge score < 0.4 → ESCALATE
   - `regulatedTopicRule` — GDPR/legal/compliance keywords → REQUIRE approved language

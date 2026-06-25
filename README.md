@@ -85,7 +85,7 @@ Retrieval operates at sub-document granularity, not whole documents:
 
 ```
 ├── shared/types.ts          # Shared types (DecisionTrace, Customer, etc.)
-├── backend/src/
+├── api/src/
 │   ├── server.ts            # Fastify app, port 3001
 │   ├── data/
 │   │   ├── kb/              # KB docs as .md files with frontmatter
@@ -103,7 +103,7 @@ Retrieval operates at sub-document granularity, not whole documents:
 │   │   └── zendesk.ts       # Mock ticketing (swap for real API here)
 │   ├── routes/              # /chat, /customers, /sessions, /knowledge/search
 │   └── store/sessions.ts    # In-memory session + trace store
-└── frontend/src/
+└── ui/src/
     ├── components/Chat/     # CustomerSelector, ChatWindow, TracePanel, EscalationCard
     └── components/Dashboard/ # SessionList, TraceTimeline
 ```
