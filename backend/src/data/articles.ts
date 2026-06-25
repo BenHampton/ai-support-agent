@@ -23,7 +23,7 @@ const parseFrontmatter = (raw: string): KnowledgeArticle => {
   }
 }
 
-const dir = join(__dirname, 'articles')
+const dir = join(__dirname, 'knowledge')
 export const ARTICLES: KnowledgeArticle[] = readdirSync(dir)
   .filter((f) => f.endsWith('.md'))
   .map((f) => parseFrontmatter(readFileSync(join(dir, f), 'utf-8')))

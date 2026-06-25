@@ -33,7 +33,7 @@ The backend embeds all 10 knowledge articles on startup (takes ~10s with Ollama 
 
 ---
 
-## What It Does
+## Request Pipeline
 
 Each chat message passes through a fixed pipeline before the LLM is ever called:
 
@@ -48,9 +48,6 @@ POST /chat
   → [4] DecisionTrace logged to session store
   → [5] SSE response { token* → done + trace }
 ```
-
-See `ben.md` for a full architecture walkthrough.
-
 ---
 
 ## Test Scenarios
