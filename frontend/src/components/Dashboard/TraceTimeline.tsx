@@ -87,7 +87,10 @@ export const TraceTimeline = ({ traces }: Props) => {
               <div style={styles.sectionLabel}>Knowledge</div>
               {trace.knowledgeMatches.map((m) => (
                 <div key={m.kbMatchId} style={styles.matchRow}>
-                  <span style={{ fontFamily: 'monospace' }}>{m.kbMatchId}</span>
+                  <span style={{ fontFamily: 'monospace' }}>
+                    {m.kbId}
+                    <span style={{ opacity: 0.5 }}>#{m.kbMatchId.split('#')[1] ?? ''}</span>
+                  </span>
                   <span
                     style={{
                       ...styles.scoreChip,

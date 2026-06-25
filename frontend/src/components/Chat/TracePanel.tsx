@@ -121,7 +121,10 @@ export const TracePanel = ({ trace, isOpen, onToggle }: Props) => {
                 {trace.knowledgeMatches.map((m) => (
                   <div key={m.kbMatchId} style={styles.matchRow}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={styles.matchId}>{m.kbMatchId}</span>
+                      <span style={styles.matchId}>
+                        {m.kbId}
+                        <span style={{ opacity: 0.5 }}>#{m.kbMatchId.split('#')[1] ?? ''}</span>
+                      </span>
                       <span style={{ fontSize: 11, fontWeight: 700, color: confidenceColor(m.score) }}>
                         {(m.score * 100).toFixed(0)}%
                       </span>

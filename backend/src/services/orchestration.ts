@@ -1,6 +1,6 @@
 import type { DecisionTrace, Message, ZendeskTicket } from '@shared/types'
 import { getCustomer } from '../integrations/salesforce.ts'
-import { searchKnowledge, getArticlesByIds } from './knowledge.js'
+import { searchKnowledge, getChunksByIds } from './knowledge.js'
 import { runRulesEngine } from '../rules/engine.ts'
 import { createTicket } from '../integrations/zendesk.ts'
 import { chat, type OllamaChatMessage } from './ollama.js'
@@ -23,10 +23,19 @@ const buildSystemPrompt = (
   customer: Awaited<ReturnType<typeof getCustomer>>,
   knowledgeMatches: Awaited<ReturnType<typeof searchKnowledge>>
 ): string => {
-  const articles = getArticlesByIds(knowledgeMatches.map((m) => m.kbMatchId))
+  // inject only the matched chunks, grouped under their KB doc title — keeps the
+  // prompt focused on the retrieved slices rather than whole documents
+  const chunks = getChunksByIds(knowledgeMatches.map((m) => m.kbMatchId))
 
-  const knowledgeContext = articles
-    .map((a) => `### ${a.title}\n${a.content}`)
+  const chunksByDoc = new Map<string, string[]>()
+  for (const chunk of chunks) {
+    const existing = chunksByDoc.get(chunk.title) ?? []
+    existing.push(chunk.content)
+    chunksByDoc.set(chunk.title, existing)
+  }
+
+  const knowledgeContext = Array.from(chunksByDoc.entries())
+    .map(([title, contents]) => `### ${title}\n${contents.join('\n\n')}`)
     .join('\n\n---\n\n')
 
   // EU injection overrides return window to 14 days and mandates GDPR-compliant language
@@ -56,7 +65,7 @@ export const runOrchestration = async (
   const messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
   const customer = await getCustomer(customerId)
-  const knowledgeMatches = await searchKnowledge(message, 3)
+  const knowledgeMatches = await searchKnowledge(message)
   const { result: ruleResult, evaluations } = runRulesEngine({ customer, query: message, knowledgeMatches })
 
   getOrCreateSession(sessionId, customerId)

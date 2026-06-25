@@ -2,7 +2,7 @@ import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { parse } from 'yaml'
-import type { Customer, KnowledgeMatch, RuleAction, RuleResult, RuleEvaluation } from '@shared/types'
+import type { Customer, KnowledgeBaseMatch, RuleAction, RuleResult, RuleEvaluation } from '@shared/types'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -11,7 +11,7 @@ type RuleConditions = {
   excludeTier?: string
   keywordSet?: string
   maxScoreBelow?: number
-  articleMatch?: { id: string; minScore: number }
+  kbMatch?: { id: string; minScore: number }
   returnWindow?: boolean
 }
 
@@ -36,7 +36,7 @@ const config: RulesConfig = parse(
 export type RuleContext = {
   customer: Customer
   query: string
-  knowledgeMatches: KnowledgeMatch[]
+  knowledgeMatches: KnowledgeBaseMatch[]
 }
 
 // case-insensitive — lowercases before matching
@@ -46,7 +46,7 @@ const matchesAny = (text: string, keywords: string[]): boolean => {
 }
 
 // returns 0 for empty matches — safe default so lowConfidenceRule triggers correctly
-const maxScore = (matches: KnowledgeMatch[]): number =>
+const maxScore = (matches: KnowledgeBaseMatch[]): number =>
   matches.length === 0 ? 0 : Math.max(...matches.map((m) => m.score))
 
 const daysSince = (dateStr: string): number => {
@@ -75,9 +75,10 @@ const evaluateConditions = (
     computed['maxScore'] = score
   }
 
-  if (conditions.articleMatch) {
-    const { id, minScore } = conditions.articleMatch
-    const match = ctx.knowledgeMatches.find((m) => m.kbMatchId === id)
+  if (conditions.kbMatch) {
+    const { id, minScore } = conditions.kbMatch
+    // matches are sorted by score, so find returns the best-scoring chunk of this doc
+    const match = ctx.knowledgeMatches.find((m) => m.kbId === id)
     if (!match || match.score < minScore) return { passed: false, metadata: {} }
   }
 

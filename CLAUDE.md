@@ -137,11 +137,11 @@ cd frontend && npm run dev   # port 5173
 
 - **Modular by layer** — each service (`ollama`, `knowledge`, `rules`, `salesforce`, `zendesk`) is independently importable and callable without standing up the full server
 - **Rules before LLM** — deterministic rules always evaluate first; the LLM is only reached on an `ANSWER` decision
-- **Trace everything** — every pipeline step emits to `DecisionTrace`, regardless of decision outcome; no silent paths
+- **Trace everything** — every orchestration step emits to `DecisionTrace`, regardless of decision outcome; no silent paths
 - **Mock at the boundary** — `salesforce.ts` and `zendesk.ts` are the only files that would change in a real integration; all business logic above them is production-ready
 - **No shared mutable state between requests** — session store is append-only; rules and knowledge are read-only after startup
 
-## Pipeline (per chat message)
+## Orchestration (per chat message)
 
 ```
 POST /chat { sessionId, customerId, message }

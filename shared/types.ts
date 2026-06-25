@@ -19,7 +19,7 @@ export type Customer = {
   entitlements: string[]
 }
 
-export type KnowledgeArticle = {
+export type KnowledgeBaseDoc = {
   id: string
   title: string
   content: string
@@ -27,8 +27,16 @@ export type KnowledgeArticle = {
   tags: string[]
 }
 
-export type KnowledgeMatch = {
+export type KnowledgeBaseChunk = {
+  chunkId: string
+  kbId: string
+  title: string
+  content: string
+}
+
+export type KnowledgeBaseMatch = {
   kbMatchId: string
+  kbId: string
   score: number
   snippet: string
 }
@@ -66,7 +74,7 @@ export type DecisionTrace = {
     region: Region
     accountStatus: AccountStatus
   }
-  knowledgeMatches: KnowledgeMatch[]
+  knowledgeMatches: KnowledgeBaseMatch[]
   rulesEvaluated: RuleEvaluation[]
   decision: Decision
   zendeskTicketId?: string

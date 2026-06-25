@@ -69,7 +69,7 @@ rules:
     action: escalate
     reason: "Low knowledge confidence (max score: {maxScore}) — cannot reliably answer"
     conditions:
-      maxScoreBelow: 0.4
+      maxScoreBelow: 0.5
     metadata:
       priority: normal
 
@@ -86,7 +86,7 @@ rules:
     reason: "Known ArkCloud EU outage detected — routing to incident macro"
     conditions:
       keywordSet: outage
-      articleMatch:
+      kbMatch:
         id: arkcloud-eu-outage
         minScore: 0.3
     metadata:

@@ -29,18 +29,18 @@ npm run dev
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:3001`
 
-The backend embeds all 10 knowledge articles on startup (takes ~10s with Ollama running). The server stays up even if Ollama isn't ready — restart once models are pulled.
+On startup the backend splits the 10 knowledge-base docs into ~38 overlapping chunks and embeds each one (takes ~10s with Ollama running). The server stays up even if Ollama isn't ready — restart once models are pulled.
 
 ---
 
-## Request Pipeline
+## Request Orchestration
 
-Each chat message passes through a fixed pipeline before the LLM is ever called:
+Each chat message passes through a fixed orchestration flow before the LLM is ever called:
 
 ```
 POST /chat
   → [1] Customer lookup       (mock Salesforce)
-  → [2] embed + cosine search (top-3 KB articles + scores)
+  → [2] embed + cosine search (top-5 KB chunks + scores)
   → [3] Rules engine          (6 rules, first match wins)
        ESCALATE → Zendesk ticket + handoff message
        ROUTE    → hardcoded incident macro
@@ -50,13 +50,31 @@ POST /chat
 ```
 ---
 
+## Architecture Notes
+
+### Knowledge chunking
+
+Retrieval operates at sub-document granularity, not whole documents:
+
+- **Ingestion** — `initKnowledge()` splits each KB doc into chunks via a hybrid
+  strategy: split on `##` headings, then window-split any oversized section into
+  overlapping windows. Each chunk is embedded independently. Whole-doc embedding
+  is the naive baseline; chunking is the production path for longer, less-structured
+  documents, giving precision retrieval at the section level.
+- **Retrieval** — `searchKnowledge()` ranks all chunks by cosine similarity and
+  returns the top-5. `buildSystemPrompt()` then injects only the matched chunk text
+  (grouped under each doc title) into the LLM prompt — keeping context focused and
+  within token limits rather than dumping entire documents.
+
+---
+
 ## Test Scenarios
 
 | Customer | Message | Expected |
 |---|---|---|
 | `consumer-us` | "How do I return my laptop?" | ANSWER — `refundEligibilityRule` |
 | `vip-eu` | "I have a billing dispute on my invoice" | ESCALATE — `vipBillingRule`, Zendesk ticket |
-| `smb-us` | "What is quantum entanglement?" | ESCALATE — `lowConfidenceRule` (score < 0.4) |
+| `smb-us` | "What is quantum entanglement?" | ESCALATE — `lowConfidenceRule` (score < 0.5) |
 | `enterprise-eu` | "What is your GDPR data retention policy?" | ANSWER — `regulatedTopicRule` |
 | `consumer-us` | "Is ArkCloud EU down?" | ROUTE — `knownOutageRule`, incident macro |
 | `consumer-us` | "Can I get a refund?" | ANSWER — eligible (purchased 7 days ago) |
@@ -69,11 +87,18 @@ POST /chat
 ├── shared/types.ts          # Shared types (DecisionTrace, Customer, etc.)
 ├── backend/src/
 │   ├── server.ts            # Fastify app, port 3001
-│   ├── data/                # Mock customers, KB articles, ticket store
+│   ├── data/
+│   │   ├── kb/              # KB docs as .md files with frontmatter
+│   │   ├── customers.ts     # Mock customer records
+│   │   └── tickets.ts       # In-memory ticket store
 │   ├── services/
 │   │   ├── ollama.ts        # embed() and chat() — Ollama API wrappers
-│   │   ├── knowledge.ts     # Cosine similarity search, article store
-│   │   ├── rules.ts         # 6-rule engine + evaluateRules()
+│   │   ├── knowledge.ts     # Hybrid chunking, embedding, cosine search, chunk store
+│   │   └── orchestration.ts # runOrchestration() — full request flow
+│   ├── rules/
+│   │   ├── engine.ts        # YAML-driven rules engine — runRulesEngine()
+│   │   └── rules.yaml       # 6 rules, keywords, thresholds
+│   ├── integrations/
 │   │   ├── salesforce.ts    # Mock CRM (swap for real API here)
 │   │   └── zendesk.ts       # Mock ticketing (swap for real API here)
 │   ├── routes/              # /chat, /customers, /sessions, /knowledge/search
