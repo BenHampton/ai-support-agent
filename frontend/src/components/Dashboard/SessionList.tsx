@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchSessions, fetchSessionTrace } from '../../api'
-import type { DecisionTrace } from '@shared/types'
+import type { DecisionTrace, Decision } from '@shared/types'
 import { TraceTimeline } from './TraceTimeline'
 
 type Session = {
@@ -81,7 +81,7 @@ export const SessionList = () => {
     setExpanded(sessionId)
   }
 
-  const lastDecision = (s: Session) => s.traces[s.traces.length - 1]?.decision ?? '—'
+  const lastDecision = (s: Session): Decision | '—' => s.traces[s.traces.length - 1]?.decision ?? '—'
 
   return (
     <div style={styles.container}>

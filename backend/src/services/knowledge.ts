@@ -24,15 +24,15 @@ const parseFrontmatter = (raw: string): KnowledgeArticle => {
   }
 }
 
-const KB_DIR = join(__dirname, '../data/knowledge')
-const ARTICLES: KnowledgeArticle[] = readdirSync(KB_DIR)
+const KB_DIR = join(__dirname, '../data/kb')
+const KB: KnowledgeArticle[] = readdirSync(KB_DIR)
   .filter((f) => f.endsWith('.md'))
   .map((f) => parseFrontmatter(readFileSync(join(KB_DIR, f), 'utf-8')))
 
-type EmbeddedArticle = KnowledgeArticle & { embedding: number[] }
+type EmbeddedEntry = KnowledgeArticle & { embedding: number[] }
 
 // populated once at startup via initKnowledge(); read-only after that — no per-request mutation
-let articleStore: EmbeddedArticle[] = []
+let kbStore: EmbeddedEntry[] = []
 
 // measures the angle between two vectors; 1.0 = identical direction, 0 = orthogonal
 const cosineSimilarity = (a: number[], b: number[]): number => {
@@ -49,30 +49,30 @@ const cosineSimilarity = (a: number[], b: number[]): number => {
 }
 
 export const initKnowledge = async (): Promise<void> => {
-  console.log(`[knowledge] Embedding ${ARTICLES.length} articles...`)
-  articleStore = await Promise.all( // embeds all articles concurrently
-    ARTICLES.map(async (article) => {
-      const text = `${article.title}\n\n${article.content}`
+  console.log(`[knowledge] Embedding ${KB.length} KB entries...`)
+  kbStore = await Promise.all( // embeds all KB entries concurrently
+    KB.map(async (entry) => {
+      const text = `${entry.title}\n\n${entry.content}`
       const embedding = await embed(text)
-      return { ...article, embedding }
+      return { ...entry, embedding }
     })
   )
-  console.log(`[knowledge] Ready — ${articleStore.length} articles indexed`)
+  console.log(`[knowledge] Ready — ${kbStore.length} entries indexed`)
 }
 
 export const searchKnowledge = async (query: string, topN = 3): Promise<KnowledgeMatch[]> => {
   // guard catches requests that arrive before initKnowledge() completes on startup
-  if (articleStore.length === 0) {
+  if (kbStore.length === 0) {
     throw new Error('Knowledge store not initialized — call initKnowledge() first')
   }
   const queryEmbedding = await embed(query)
-  const scored = articleStore.map((article) => ({
-    articleId: article.id,
-    score: parseFloat(cosineSimilarity(queryEmbedding, article.embedding).toFixed(4)),
-    snippet: article.content.slice(0, 300).trimEnd() + '…'
+  const scored = kbStore.map((entry) => ({
+    kbMatchId: entry.id,
+    score: parseFloat(cosineSimilarity(queryEmbedding, entry.embedding).toFixed(4)),
+    snippet: entry.content.slice(0, 300).trimEnd() + '…'
   }))
   return scored.sort((a, b) => b.score - a.score).slice(0, topN)
 }
 
 export const getArticlesByIds = (ids: string[]): KnowledgeArticle[] =>
-  ids.map((id) => ARTICLES.find((a) => a.id === id)).filter((a): a is KnowledgeArticle => a != null)
+  ids.map((id) => KB.find((e) => e.id === id)).filter((e): e is KnowledgeArticle => e != null)

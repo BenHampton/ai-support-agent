@@ -23,7 +23,7 @@ const buildSystemPrompt = (
   customer: Awaited<ReturnType<typeof getCustomer>>,
   knowledgeMatches: Awaited<ReturnType<typeof searchKnowledge>>
 ): string => {
-  const articles = getArticlesByIds(knowledgeMatches.map((m) => m.articleId))
+  const articles = getArticlesByIds(knowledgeMatches.map((m) => m.kbMatchId))
 
   const knowledgeContext = articles
     .map((a) => `### ${a.title}\n${a.content}`)

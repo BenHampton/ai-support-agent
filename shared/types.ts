@@ -28,7 +28,7 @@ export type KnowledgeArticle = {
 }
 
 export type KnowledgeMatch = {
-  articleId: string
+  kbMatchId: string
   score: number
   snippet: string
 }

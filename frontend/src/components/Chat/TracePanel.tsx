@@ -119,9 +119,9 @@ export const TracePanel = ({ trace, isOpen, onToggle }: Props) => {
               <div style={styles.section}>
                 <div style={styles.sectionLabel}>Knowledge ({trace.knowledgeMatches.length})</div>
                 {trace.knowledgeMatches.map((m) => (
-                  <div key={m.articleId} style={styles.matchRow}>
+                  <div key={m.kbMatchId} style={styles.matchRow}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={styles.matchId}>{m.articleId}</span>
+                      <span style={styles.matchId}>{m.kbMatchId}</span>
                       <span style={{ fontSize: 11, fontWeight: 700, color: confidenceColor(m.score) }}>
                         {(m.score * 100).toFixed(0)}%
                       </span>

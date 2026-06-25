@@ -77,7 +77,7 @@ const evaluateConditions = (
 
   if (conditions.articleMatch) {
     const { id, minScore } = conditions.articleMatch
-    const match = ctx.knowledgeMatches.find((m) => m.articleId === id)
+    const match = ctx.knowledgeMatches.find((m) => m.kbMatchId === id)
     if (!match || match.score < minScore) return { passed: false, metadata: {} }
   }
 
