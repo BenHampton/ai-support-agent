@@ -1,0 +1,109 @@
+keywords:
+  billing:
+    - billing
+    - bill
+    - invoice
+    - charge
+    - payment
+    - subscription
+    - dispute
+    - refund
+    - credit
+    - overcharge
+    - debit
+    - fee
+    - cost
+    - price
+  outage:
+    - outage
+    - down
+    - offline
+    - unavailable
+    - not working
+    - disruption
+    - incident
+    - latency
+    - degraded
+    - degradation
+    - slow
+    - unreachable
+    - timeout
+  gdpr:
+    - gdpr
+    - privacy
+    - data retention
+    - erasure
+    - data protection
+    - personal data
+    - compliance
+    - regulation
+    - legal
+    - dpo
+    - right to
+    - opt out
+  refund:
+    - refund
+    - return
+    - send back
+    - money back
+    - exchange
+    - give back
+    - cancel order
+
+returnWindows:
+  us: 30
+  eu: 14
+
+rules:
+  - name: vipBillingRule
+    action: escalate
+    conditions:
+      tier: vip
+      keywordSet: billing
+    metadata:
+      priority: urgent
+      tier: vip
+
+  - name: lowConfidenceRule
+    action: escalate
+    conditions:
+      maxScoreBelow: 0.4
+    metadata:
+      priority: normal
+
+  - name: regulatedTopicRule
+    action: answer
+    conditions:
+      keywordSet: gdpr
+    metadata:
+      requiresComplianceLanguage: true
+
+  - name: knownOutageRule
+    action: route
+    conditions:
+      keywordSet: outage
+      articleMatch:
+        id: arkcloud-eu-outage
+        minScore: 0.3
+    metadata:
+      macro: arkcloud-eu-outage
+      response: |
+        We are aware of an active incident affecting ArkCloud EU-WEST-1 and EU-CENTRAL-1 regions. Our infrastructure team is working on a fix with an ETA of 20:30 UTC today.
+
+        Workaround: If you have a multi-region setup, you can redirect traffic to EU-NORTH-1 or US-EAST-1 via ArkCloud Console → Settings → Region Preferences.
+
+        All affected customers will receive automatic SLA credits. Monitor real-time status at status.arksystems.com.
+
+        We apologize for the inconvenience.
+
+  - name: refundEligibilityRule
+    action: answer
+    conditions:
+      keywordSet: refund
+      returnWindow: true
+
+  - name: selfServeBillingRule
+    action: answer
+    conditions:
+      excludeTier: vip
+      keywordSet: billing

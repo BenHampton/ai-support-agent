@@ -1,9 +1,9 @@
 import type { DecisionTrace, Message, ZendeskTicket } from '@shared/types'
 import { getCustomer } from '../integrations/salesforce.ts'
-import { searchKnowledge, getArticlesByIds } from '../services/knowledge.ts'
-import { evaluateRules } from '../services/rules.ts'
+import { searchKnowledge, getArticlesByIds } from './knowledge.js'
+import { runRulesEngine } from '../rules/engine.ts'
 import { createTicket } from '../integrations/zendesk.ts'
-import { chat, type OllamaChatMessage } from '../services/ollama.ts'
+import { chat, type OllamaChatMessage } from './ollama.js'
 import { getOrCreateSession, appendToSession } from '../store/sessions.ts'
 
 export type ChatInput = {
@@ -57,7 +57,7 @@ export const runOrchestration = async (
 
   const customer = await getCustomer(customerId)
   const knowledgeMatches = await searchKnowledge(message, 3)
-  const { result: ruleResult, evaluations } = evaluateRules({ customer, query: message, knowledgeMatches })
+  const { result: ruleResult, evaluations } = runRulesEngine({ customer, query: message, knowledgeMatches })
 
   getOrCreateSession(sessionId, customerId)
 
