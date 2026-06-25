@@ -1,15 +1,35 @@
-import type { KnowledgeMatch } from '@shared/types'
-import { ARTICLES } from '../data/articles.ts'
+import { readFileSync, readdirSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+import type { KnowledgeArticle, KnowledgeMatch } from '@shared/types'
 import { embed } from './ollama.ts'
 
-type EmbeddedArticle = {
-  id: string
-  title: string
-  content: string
-  category: string
-  tags: string[]
-  embedding: number[]
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+const parseFrontmatter = (raw: string): KnowledgeArticle => {
+  const match = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+  if (!match) throw new Error('Missing frontmatter')
+  const meta: Record<string, string> = {}
+  for (const line of match[1].split('\n')) {
+    const colonIdx = line.indexOf(':')
+    if (colonIdx === -1) continue
+    meta[line.slice(0, colonIdx).trim()] = line.slice(colonIdx + 1).trim()
+  }
+  return {
+    id: meta['id'],
+    title: meta['title'],
+    category: meta['category'],
+    tags: meta['tags'].split(',').map((t) => t.trim()),
+    content: match[2].trim()
+  }
 }
+
+const KB_DIR = join(__dirname, '../data/knowledge')
+const ARTICLES: KnowledgeArticle[] = readdirSync(KB_DIR)
+  .filter((f) => f.endsWith('.md'))
+  .map((f) => parseFrontmatter(readFileSync(join(KB_DIR, f), 'utf-8')))
+
+type EmbeddedArticle = KnowledgeArticle & { embedding: number[] }
 
 // populated once at startup via initKnowledge(); read-only after that — no per-request mutation
 let articleStore: EmbeddedArticle[] = []
@@ -53,3 +73,6 @@ export const searchKnowledge = async (query: string, topN = 3): Promise<Knowledg
   }))
   return scored.sort((a, b) => b.score - a.score).slice(0, topN)
 }
+
+export const getArticlesByIds = (ids: string[]): KnowledgeArticle[] =>
+  ids.map((id) => ARTICLES.find((a) => a.id === id)).filter((a): a is KnowledgeArticle => a != null)

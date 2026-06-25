@@ -1,10 +1,9 @@
 import type { DecisionTrace, Message, ZendeskTicket } from '@shared/types'
 import { getCustomer } from '../integrations/salesforce.ts'
-import { searchKnowledge } from '../services/knowledge.ts'
+import { searchKnowledge, getArticlesByIds } from '../services/knowledge.ts'
 import { evaluateRules } from '../services/rules.ts'
 import { createTicket } from '../integrations/zendesk.ts'
 import { chat, type OllamaChatMessage } from '../services/ollama.ts'
-import { ARTICLES } from '../data/articles.ts'
 import { getOrCreateSession, appendToSession } from '../store/sessions.ts'
 
 export type ChatInput = {
@@ -24,9 +23,7 @@ const buildSystemPrompt = (
   customer: Awaited<ReturnType<typeof getCustomer>>,
   knowledgeMatches: Awaited<ReturnType<typeof searchKnowledge>>
 ): string => {
-  const articles = knowledgeMatches
-    .map((m) => ARTICLES.find((a) => a.id === m.articleId))
-    .filter((a): a is NonNullable<typeof a> => a != null)
+  const articles = getArticlesByIds(knowledgeMatches.map((m) => m.articleId))
 
   const knowledgeContext = articles
     .map((a) => `### ${a.title}\n${a.content}`)
