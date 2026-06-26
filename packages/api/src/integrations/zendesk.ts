@@ -1,5 +1,11 @@
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import type { ZendeskTicket } from '@shared/types'
-import { ticketStore } from '../data/tickets.ts'
+import { DATA_DIR } from '../config.ts'
+
+// mock Zendesk — in-memory store seeded from external data; created tickets stay in
+// memory (not persisted back). Swap this for a real Zendesk integration.
+const ticketStore: ZendeskTicket[] = JSON.parse(readFileSync(join(DATA_DIR, 'tickets.json'), 'utf-8')) as ZendeskTicket[]
 
 type CreateTicketInput = {
   customerId: string

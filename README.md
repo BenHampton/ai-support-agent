@@ -84,28 +84,29 @@ Retrieval operates at sub-document granularity, not whole documents:
 ## Project Structure
 
 ```
-├── packages/shared/types.ts # Shared types (DecisionTrace, Customer, etc.)
+├── data/                        # external mock data (read at runtime — swap point for real integrations)
+│   ├── customers.json           # mock Salesforce customer records
+│   ├── tickets.json             # seed for the in-memory ticket store ([] by default)
+│   └── kb/                      # 10 knowledge-base docs as .md files with frontmatter
+├── packages/shared/types.ts     # Shared types (DecisionTrace, Customer, etc.)
 ├── packages/api/src/
-│   ├── server.ts            # Fastify app, port 3001
-│   ├── data/
-│   │   ├── kb/              # KB docs as .md files with frontmatter
-│   │   ├── customers.ts     # Mock customer records
-│   │   └── tickets.ts       # In-memory ticket store
+│   ├── server.ts                # Fastify app, port 3001
+│   ├── config.ts                # DATA_DIR — locates the root data/ dir
 │   ├── services/
-│   │   ├── ollama.ts        # embed() and chat() — Ollama API wrappers
-│   │   ├── knowledge.ts     # Hybrid chunking, embedding, cosine search, chunk store
-│   │   └── orchestration.ts # runOrchestration() — full request flow
+│   │   ├── ollama.ts            # embed() and chat() — Ollama API wrappers
+│   │   ├── knowledge.ts         # Hybrid chunking, embedding, cosine search, chunk store
+│   │   └── orchestration.ts     # runOrchestration() — full request flow
 │   ├── rules/
-│   │   ├── engine.ts        # YAML-driven rules engine — runRulesEngine()
-│   │   └── rules.yaml       # 6 rules, keywords, thresholds
+│   │   ├── engine.ts            # YAML-driven rules engine — runRulesEngine()
+│   │   └── rules.yaml           # 6 rules, keywords, thresholds
 │   ├── integrations/
-│   │   ├── salesforce.ts    # Mock CRM (swap for real API here)
-│   │   └── zendesk.ts       # Mock ticketing (swap for real API here)
-│   ├── routes/              # /chat, /customers, /sessions, /knowledge/search
-│   └── store/sessions.ts    # In-memory session + trace store
+│   │   ├── salesforce.ts        # Mock CRM — loads customers.json (swap for real API here)
+│   │   └── zendesk.ts           # Mock ticketing — seeds store from tickets.json (swap for real API here)
+│   ├── routes/                  # /chat, /customers, /sessions, /knowledge/search
+│   └── store/sessions.ts        # In-memory session + trace store
 └── packages/ui/src/
-    ├── components/Chat/     # CustomerSelector, ChatWindow, TracePanel, EscalationCard
-    └── components/Dashboard/ # SessionList, TraceTimeline
+    ├── components/Chat/         # CustomerSelector, ChatWindow, TracePanel, EscalationCard
+    └── components/Dashboard/    # SessionList, TraceTimeline
 ```
 
 ---

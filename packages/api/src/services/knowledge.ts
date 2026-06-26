@@ -1,10 +1,8 @@
 import { readFileSync, readdirSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { join } from 'path'
 import type { KnowledgeBaseChunk, KnowledgeBaseDoc, KnowledgeBaseMatch } from '@shared/types'
 import { embed } from './ollama.ts'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
+import { DATA_DIR } from '../config.ts'
 
 // chunking config — full docs are split into overlapping sub-document chunks so
 // retrieval can match at section granularity and the prompt carries only the
@@ -31,7 +29,7 @@ const parseFrontmatter = (raw: string): KnowledgeBaseDoc => {
   }
 }
 
-const KB_DIR = join(__dirname, '../data/kb')
+const KB_DIR = join(DATA_DIR, 'kb')
 const KB: KnowledgeBaseDoc[] = readdirSync(KB_DIR)
   .filter((f) => f.endsWith('.md'))
   .map((f) => parseFrontmatter(readFileSync(join(KB_DIR, f), 'utf-8')))

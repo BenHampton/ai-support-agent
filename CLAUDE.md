@@ -35,6 +35,10 @@ Directory-specific guidance lives in `packages/api/CLAUDE.md` and `packages/ui/C
 ```
 ai-support-agent/
 ├── package.json               # npm workspaces: ["packages/ui", "packages/api"]
+├── data/                      # external mock data (read at runtime — swap point for real integrations)
+│   ├── customers.json         # mock Salesforce customers
+│   ├── tickets.json           # ticket-store seed ([] by default)
+│   └── kb/                    # knowledge-base .md docs
 └── packages/
     ├── shared/
     │   └── types.ts           # DecisionTrace, Customer, RuleResult, KnowledgeArticle, ZendeskTicket
@@ -56,10 +60,6 @@ ai-support-agent/
             │   ├── salesforce.ts  # mock CRM lookup
             │   ├── zendesk.ts     # mock ticket store
             │   └── rules.ts       # business rules engine
-            ├── data/
-            │   ├── customers.ts   # consumer-us, consumer-eu, smb-us, smb-eu, enterprise-us, enterprise-eu, vip-us, vip-eu
-            │   ├── articles.ts    # return-policy-us, return-policy-eu, gdpr-data-privacy-eu, warranty-claim-process, arkcloud-billing-faq, arkcloud-eu-outage, laptop-desktop-troubleshooting, server-storage-support, enterprise-sla-tiers, billing-dispute-escalation
-            │   └── tickets.ts     # in-memory ticket store
             └── server.ts
 ```
 
