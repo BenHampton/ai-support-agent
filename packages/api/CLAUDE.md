@@ -1,6 +1,6 @@
 # API — Ark Systems Support AI
 
-Backend-specific guidance. Auto-loaded when working under `api/`. See the root `CLAUDE.md` for shared project context, tech stack, company profile, and shared conventions.
+Backend-specific guidance. Auto-loaded when working under `packages/api/`. See the root `CLAUDE.md` for shared project context, tech stack, company profile, and shared conventions.
 
 ## Conventions
 

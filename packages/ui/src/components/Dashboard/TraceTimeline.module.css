@@ -1,0 +1,165 @@
+.container {
+  padding: 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.emptyText {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.traceCard {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.traceHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+}
+
+.decisionBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 99px;
+  text-transform: uppercase;
+}
+
+.answer {
+  color: var(--decision-answer);
+  background: var(--decision-answer-soft);
+}
+
+.escalate {
+  color: var(--decision-escalate);
+  background: var(--decision-escalate-soft);
+}
+
+.route {
+  color: var(--decision-route);
+  background: var(--decision-route-soft);
+}
+
+.headerTime {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.headerTicket {
+  font-size: 11px;
+  color: var(--danger-text);
+  font-family: monospace;
+}
+
+.headerContext {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.body {
+  padding: 12px 14px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.section {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sectionLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.matchRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-mono);
+}
+
+.kbMatch {
+  font-family: monospace;
+}
+
+.kbSuffix {
+  opacity: 0.5;
+}
+
+.scoreChip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 99px;
+}
+
+.confHigh {
+  color: var(--conf-high);
+  background: var(--conf-high-soft);
+}
+
+.confMed {
+  color: var(--conf-med);
+  background: var(--conf-med-soft);
+}
+
+.confLow {
+  color: var(--conf-low);
+  background: var(--conf-low-soft);
+}
+
+.ruleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotFired {
+  background: var(--decision-answer);
+}
+
+.dotInactive {
+  background: var(--rule-inactive);
+}
+
+.ruleName {
+  font-family: monospace;
+  color: var(--text-mono);
+  flex: 1;
+}
+
+.ruleNameFired {
+  color: var(--decision-answer);
+}
+
+.meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}

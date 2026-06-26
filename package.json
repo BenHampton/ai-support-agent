@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "workspaces": [
-    "ui",
-    "api"
+    "packages/ui",
+    "packages/api"
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev -w api\" \"npm run dev -w ui\"",

@@ -1,0 +1,76 @@
+.card {
+  background: var(--escalation-bg);
+  border: 1px solid var(--escalation-border);
+  border-left: 4px solid var(--decision-escalate);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon {
+  font-size: 16px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--escalation-title);
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.label {
+  color: var(--text-muted);
+  min-width: 60px;
+}
+
+.value {
+  color: var(--text);
+  font-family: monospace;
+}
+
+.valueTicket {
+  color: var(--danger-text);
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 99px;
+  text-transform: uppercase;
+}
+
+.urgent {
+  color: var(--priority-urgent);
+  background: var(--priority-urgent-soft);
+}
+
+.high {
+  color: var(--priority-high);
+  background: var(--priority-high-soft);
+}
+
+.normal {
+  color: var(--priority-normal);
+  background: var(--priority-normal-soft);
+}
+
+.low {
+  color: var(--priority-low);
+  background: var(--priority-low-soft);
+}

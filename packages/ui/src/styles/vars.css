@@ -1,0 +1,82 @@
+/*
+ * Design tokens — CSS custom properties (raw hex values).
+ *
+ * Pattern: "design tokens via CSS custom properties". The styles/ layering
+ * follows an ITCSS-style split:
+ *   Settings  → this file (vars.css) — shared values, referenced via var(--token)
+ *   Generic   → global.css — reset + base element styles
+ *   Component → co-located *.module.css per component
+ */
+
+:root {
+  /* surfaces */
+  --bg-base: #0f1117;
+  --bg-panel: #1a1d27;
+  --bg-elevated: #151824;
+  --bg-subtle: #1e2233;
+  --border: #2d3148;
+  --border-subtle: #1e2233;
+
+  /* text */
+  --text: #e2e8f0;
+  --text-bright: #f1f5f9;
+  --text-muted: #64748b;
+  --text-dim: #475569;
+  --text-mono: #94a3b8;
+
+  /* accents */
+  --accent: #6366f1;
+  --accent-strong: #4f46e5;
+  --accent-cyan: #0ea5e9;
+  --danger-text: #f87171;
+  --rule-inactive: #334155;
+
+  /* user chat bubble */
+  --user-bubble-bg: #1e3a5f;
+  --user-bubble-border: #1d4ed8;
+  --user-bubble-text: #bfdbfe;
+
+  /* decision (base / soft background / bubble tint) */
+  --decision-answer: #22c55e;
+  --decision-answer-soft: #22c55e22;
+  --decision-answer-bg: #0d1f14;
+  --decision-escalate: #ef4444;
+  --decision-escalate-soft: #ef444422;
+  --decision-escalate-bg: #1a0a0a;
+  --decision-route: #f97316;
+  --decision-route-soft: #f9731622;
+  --decision-route-bg: #1a100a;
+
+  /* knowledge confidence buckets */
+  --conf-high: #22c55e;
+  --conf-high-soft: #22c55e22;
+  --conf-med: #eab308;
+  --conf-med-soft: #eab30822;
+  --conf-low: #ef4444;
+  --conf-low-soft: #ef444422;
+
+  /* customer tier */
+  --tier-consumer: #6366f1;
+  --tier-consumer-soft: #6366f122;
+  --tier-smb: #0ea5e9;
+  --tier-smb-soft: #0ea5e922;
+  --tier-enterprise: #f59e0b;
+  --tier-enterprise-soft: #f59e0b22;
+  --tier-vip: #ec4899;
+  --tier-vip-soft: #ec489922;
+
+  /* ticket priority */
+  --priority-urgent: #ef4444;
+  --priority-urgent-soft: #ef444422;
+  --priority-high: #f97316;
+  --priority-high-soft: #f9731622;
+  --priority-normal: #6366f1;
+  --priority-normal-soft: #6366f122;
+  --priority-low: #64748b;
+  --priority-low-soft: #64748b22;
+
+  /* escalation card */
+  --escalation-bg: #1a0a0a;
+  --escalation-border: #7f1d1d;
+  --escalation-title: #fca5a5;
+}

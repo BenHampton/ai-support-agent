@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Production-grade prototype for a Maven AGI Senior FDE interview. This is not a demo or proof-of-concept — it is built to production standards: typed contracts across all boundaries, deterministic rules before any LLM call, full observability on every request, and mock integrations that swap to real ones without touching business logic.
+Production-grade prototype for a Senior Forward Deployed Engineer interview. This is not a demo or proof-of-concept — it is built to production standards: typed contracts across all boundaries, deterministic rules before any LLM call, full observability on every request, and mock integrations that swap to real ones without touching business logic.
 
 The system simulates a production AI customer support agent for **Ark Systems** — a fictional B2B + B2C enterprise hardware and cloud company (Dell analog). It demonstrates the full Maven support pipeline end-to-end: RAG-based knowledge retrieval, a business rules engine, CRM/ticketing integrations (mock Salesforce + Zendesk), a streaming chat UI, and an FDE debug dashboard.
 
@@ -25,41 +25,42 @@ Every architectural decision should reflect what would be required in a real ent
 
 ## Project Structure
 
-npm workspaces monorepo. Shared types live in `/shared` at the root and are imported via path alias `@shared/*` in both apps — no separate package, no build step.
+npm workspaces monorepo. The three packages live under `packages/`. Shared types live in `packages/shared` and are imported via path alias `@shared/*` in both apps — no separate package, no build step.
 
-Directory-specific guidance lives in `api/CLAUDE.md` and `ui/CLAUDE.md`, auto-loaded when working in those dirs.
+Directory-specific guidance lives in `packages/api/CLAUDE.md` and `packages/ui/CLAUDE.md`, auto-loaded when working in those dirs.
 
 - **Backend:** `tsconfig.json` paths: `"@shared/*": ["../shared/*"]`
 - **Frontend:** `vite.config.ts` alias: `'@shared' → path.resolve(__dirname, '../shared')`
 
 ```
 ai-support-agent/
-├── package.json               # npm workspaces: ["ui", "api"]
-├── shared/
-│   └── types.ts               # DecisionTrace, Customer, RuleResult, KnowledgeArticle, ZendeskTicket
-├── ui/
-│   └── src/
-│       ├── components/
-│       │   ├── Chat/          # Customer-facing chat UI
-│       │   └── Dashboard/     # FDE log viewer
-│       └── App.tsx
-└── api/
-    └── src/
-        ├── routes/
-        │   ├── chat.ts        # POST /chat
-        │   ├── sessions.ts    # GET /sessions, GET /sessions/:id/trace
-        │   └── knowledge.ts   # GET /knowledge/search
-        ├── services/
-        │   ├── ollama.ts      # embed() and chat() wrappers
-        │   ├── knowledge.ts   # cosine similarity search
-        │   ├── salesforce.ts  # mock CRM lookup
-        │   ├── zendesk.ts     # mock ticket store
-        │   └── rules.ts       # business rules engine
-        ├── data/
-        │   ├── customers.ts   # consumer-us, consumer-eu, smb-us, smb-eu, enterprise-us, enterprise-eu, vip-us, vip-eu
-        │   ├── articles.ts    # return-policy-us, return-policy-eu, gdpr-data-privacy-eu, warranty-claim-process, arkcloud-billing-faq, arkcloud-eu-outage, laptop-desktop-troubleshooting, server-storage-support, enterprise-sla-tiers, billing-dispute-escalation
-        │   └── tickets.ts     # in-memory ticket store
-        └── server.ts
+├── package.json               # npm workspaces: ["packages/ui", "packages/api"]
+└── packages/
+    ├── shared/
+    │   └── types.ts           # DecisionTrace, Customer, RuleResult, KnowledgeArticle, ZendeskTicket
+    ├── ui/
+    │   └── src/
+    │       ├── components/
+    │       │   ├── Chat/      # Customer-facing chat UI
+    │       │   └── Dashboard/ # FDE log viewer
+    │       └── App.tsx
+    └── api/
+        └── src/
+            ├── routes/
+            │   ├── chat.ts        # POST /chat
+            │   ├── sessions.ts    # GET /sessions, GET /sessions/:id/trace
+            │   └── knowledge.ts   # GET /knowledge/search
+            ├── services/
+            │   ├── ollama.ts      # embed() and chat() wrappers
+            │   ├── knowledge.ts   # cosine similarity search
+            │   ├── salesforce.ts  # mock CRM lookup
+            │   ├── zendesk.ts     # mock ticket store
+            │   └── rules.ts       # business rules engine
+            ├── data/
+            │   ├── customers.ts   # consumer-us, consumer-eu, smb-us, smb-eu, enterprise-us, enterprise-eu, vip-us, vip-eu
+            │   ├── articles.ts    # return-policy-us, return-policy-eu, gdpr-data-privacy-eu, warranty-claim-process, arkcloud-billing-faq, arkcloud-eu-outage, laptop-desktop-troubleshooting, server-storage-support, enterprise-sla-tiers, billing-dispute-escalation
+            │   └── tickets.ts     # in-memory ticket store
+            └── server.ts
 ```
 
 ## Running the Project

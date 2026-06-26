@@ -1,6 +1,6 @@
 # Ark Systems Support AI
 
-Production-grade prototype of a Maven AGI support pipeline for **Ark Systems** — a fictional B2B + B2C enterprise hardware and cloud company.
+Production-grade prototype of a support agent for **Ark Systems** — a fictional B2B + B2C enterprise hardware and cloud company.
 
 Demonstrates the full support stack: RAG knowledge retrieval, a deterministic business rules engine, mock Salesforce/Zendesk integrations, streaming chat UI, and an FDE debug dashboard.
 
@@ -84,8 +84,8 @@ Retrieval operates at sub-document granularity, not whole documents:
 ## Project Structure
 
 ```
-├── shared/types.ts          # Shared types (DecisionTrace, Customer, etc.)
-├── api/src/
+├── packages/shared/types.ts # Shared types (DecisionTrace, Customer, etc.)
+├── packages/api/src/
 │   ├── server.ts            # Fastify app, port 3001
 │   ├── data/
 │   │   ├── kb/              # KB docs as .md files with frontmatter
@@ -103,7 +103,7 @@ Retrieval operates at sub-document granularity, not whole documents:
 │   │   └── zendesk.ts       # Mock ticketing (swap for real API here)
 │   ├── routes/              # /chat, /customers, /sessions, /knowledge/search
 │   └── store/sessions.ts    # In-memory session + trace store
-└── ui/src/
+└── packages/ui/src/
     ├── components/Chat/     # CustomerSelector, ChatWindow, TracePanel, EscalationCard
     └── components/Dashboard/ # SessionList, TraceTimeline
 ```
