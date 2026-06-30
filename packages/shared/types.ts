@@ -53,6 +53,15 @@ export type RuleEvaluation = {
   reason: string
 }
 
+export type Incident = {
+  id: string
+  title: string
+  regions: string[]
+  eta: string
+  workaround: string
+  statusUrl: string
+}
+
 export type ZendeskTicket = {
   id: string
   customerId: string

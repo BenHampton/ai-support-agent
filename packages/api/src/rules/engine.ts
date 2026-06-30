@@ -2,7 +2,7 @@ import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { parse } from 'yaml'
-import type { Customer, KnowledgeBaseMatch, RuleAction, RuleResult, RuleEvaluation } from '@shared/types'
+import type { Customer, Incident, KnowledgeBaseMatch, RuleAction, RuleResult, RuleEvaluation } from '@shared/types'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -12,6 +12,7 @@ type RuleConditions = {
   keywordSet?: string
   maxScoreBelow?: number
   kbMatch?: { id: string; minScore: number }
+  incidentActive?: string
   returnWindow?: boolean
 }
 
@@ -37,6 +38,7 @@ export type RuleContext = {
   customer: Customer
   query: string
   knowledgeMatches: KnowledgeBaseMatch[]
+  activeIncidents: Incident[]
 }
 
 // case-insensitive — lowercases before matching
@@ -80,6 +82,11 @@ const evaluateConditions = (
     // matches are sorted by score, so find returns the best-scoring chunk of this doc
     const match = ctx.knowledgeMatches.find((m) => m.kbId === id)
     if (!match || match.score < minScore) return { passed: false, metadata: {} }
+  }
+
+  if (conditions.incidentActive) {
+    const live = ctx.activeIncidents.some((i) => i.id === conditions.incidentActive)
+    if (!live) return { passed: false, metadata: {} }
   }
 
   if (conditions.returnWindow) {

@@ -1,8 +1,9 @@
-import type { DecisionTrace, Message, ZendeskTicket } from '@shared/types'
+import type { DecisionTrace, Incident, Message, ZendeskTicket } from '@shared/types'
 import { getCustomer } from '../integrations/salesforce.ts'
 import { searchKnowledge, getChunksByIds } from './knowledge.js'
 import { runRulesEngine } from '../rules/engine.ts'
 import { createTicket } from '../integrations/zendesk.ts'
+import { getActiveIncidents, formatIncidentMessage } from '../integrations/arkcloud-status.ts'
 import { chat, type OllamaChatMessage } from './ollama.js'
 import { getOrCreateSession, appendToSession } from '../store/sessions.ts'
 
@@ -21,11 +22,12 @@ export type ChatResult = {
 
 const buildSystemPrompt = (
   customer: Awaited<ReturnType<typeof getCustomer>>,
-  knowledgeMatches: Awaited<ReturnType<typeof searchKnowledge>>
+  knowledgeMatches: Awaited<ReturnType<typeof searchKnowledge>>,
+  activeIncidents: Incident[]
 ): string => {
   // strip our fence delimiters from any interpolated value so a malicious
   // field/chunk can't close the tag early and break out into instructions
-  const stripTags = (value: string): string => value.replace(/<\/?(?:customer|kb)>/gi, '')
+  const stripTags = (value: string): string => value.replace(/<\/?(?:customer|kb|status)>/gi, '')
 
   // inject only the matched chunks, grouped under their KB doc title — keeps the
   // prompt focused on the retrieved slices rather than whole documents
@@ -48,6 +50,12 @@ const buildSystemPrompt = (
       ? '\nIMPORTANT: This is an EU customer. Apply GDPR-compliant language on any data topics. The statutory return window is 14 days for EU customers, not 30.\n'
       : ''
 
+  // authoritative real-time incident state — overrides any KB article describing a past incident
+  const incidentStatus =
+    activeIncidents.length === 0
+      ? 'No active incidents at this time.'
+      : activeIncidents.map((i) => `${i.title} — affected regions: ${i.regions.join(', ')}; ETA ${i.eta}.`).join('\n')
+
   return `You are an AI support agent for Ark Systems, a B2B and B2C enterprise technology company.
  Answer concisely, accurately, and professionally using only the knowledge base provided.
 
@@ -61,6 +69,12 @@ Region: ${customer.region.toUpperCase()}
 Account Status: ${customer.accountStatus}
 Products: ${customer.products.map(stripTags).join(', ')}
 </customer>
+
+## Current Incident Status
+<status>
+${incidentStatus}
+</status>
+The status block above is the source of truth for current outages — trust it over any knowledge base article that describes a past incident.
 
 ## Knowledge Base
 <kb>
@@ -77,7 +91,8 @@ export const runOrchestration = async (
 
   const customer = await getCustomer(customerId)
   const knowledgeMatches = await searchKnowledge(message)
-  const { result: ruleResult, evaluations } = runRulesEngine({ customer, query: message, knowledgeMatches })
+  const activeIncidents = await getActiveIncidents()
+  const { result: ruleResult, evaluations } = runRulesEngine({ customer, query: message, knowledgeMatches, activeIncidents })
 
   getOrCreateSession(sessionId, customerId)
 
@@ -117,7 +132,8 @@ export const runOrchestration = async (
   }
 
   if (ruleResult.action === 'route') {
-    const reply = ruleResult.metadata.response as string
+    const incident = activeIncidents.find((i) => i.id === ruleResult.metadata.macro)
+    const reply = incident ? formatIncidentMessage(incident) : String(ruleResult.metadata.response ?? '')
     const trace: DecisionTrace = { ...baseTrace, decision: 'route', latencyMs: Date.now() - startTime }
 
     const userMsg: Message = { id: `${messageId}-u`, role: 'user', content: message, timestamp: new Date().toISOString() }
@@ -128,7 +144,7 @@ export const runOrchestration = async (
     return { decision: 'route', reply, trace }
   }
 
-  const systemPrompt = buildSystemPrompt(customer, knowledgeMatches)
+  const systemPrompt = buildSystemPrompt(customer, knowledgeMatches, activeIncidents)
   const messages: OllamaChatMessage[] = [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: message }

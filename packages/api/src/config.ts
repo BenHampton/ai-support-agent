@@ -7,3 +7,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 // In a real deployment this comes from Salesforce/Zendesk/a knowledge store instead —
 // override the location with the DATA_DIR env var.
 export const DATA_DIR = process.env.DATA_DIR ?? join(__dirname, '../../../data')
+
+// outage demo toggle — default on; set OUTAGE_ACTIVE=false to simulate "no active incident"
+export const OUTAGE_ACTIVE = process.env.OUTAGE_ACTIVE !== 'false'

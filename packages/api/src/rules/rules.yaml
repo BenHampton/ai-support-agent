@@ -89,16 +89,10 @@ rules:
       kbMatch:
         id: arkcloud-eu-outage
         minScore: 0.3
+      incidentActive: arkcloud-eu-outage
     metadata:
+      # reply text is sourced from the live incident record (arkcloud-status integration)
       macro: arkcloud-eu-outage
-      response: |
-        We are aware of an active incident affecting ArkCloud EU-WEST-1 and EU-CENTRAL-1 regions. Our infrastructure team is working on a fix with an ETA of 20:30 UTC today.
-
-        Workaround: If you have a multi-region setup, you can redirect traffic to EU-NORTH-1 or US-EAST-1 via ArkCloud Console → Settings → Region Preferences.
-
-        All affected customers will receive automatic SLA credits. Monitor real-time status at status.arksystems.com.
-
-        We apologize for the inconvenience.
 
   - name: refundEligibilityRule
     action: answer
