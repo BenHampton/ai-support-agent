@@ -8,6 +8,10 @@ type Props = {
 const confidenceLevel = (score: number): 'confHigh' | 'confMed' | 'confLow' =>
   score >= 0.7 ? 'confHigh' : score >= 0.4 ? 'confMed' : 'confLow'
 
+// surface a rule's computed refund verdict as a structured chip, not just buried in the reason prose
+const eligibleVerdict = (metadata?: Record<string, unknown>): 'ELIGIBLE' | 'NOT ELIGIBLE' | null =>
+  typeof metadata?.eligible === 'boolean' ? (metadata.eligible ? 'ELIGIBLE' : 'NOT ELIGIBLE') : null
+
 export const TraceTimeline = ({ traces }: Props): JSX.Element => {
   if (!traces.length) {
     return <div className={`${styles.container} ${styles.emptyText}`}>No traces found</div>
@@ -52,12 +56,23 @@ export const TraceTimeline = ({ traces }: Props): JSX.Element => {
 
             <div className={styles.section}>
               <div className={styles.sectionLabel}>Rules</div>
-              {trace.rulesEvaluated.filter((r) => r.fired).map((r) => (
-                <div key={r.rule} className={styles.ruleRow}>
-                  <div className={`${styles.dot} ${styles.dotFired}`} />
-                  <span className={`${styles.ruleName} ${styles.ruleNameFired}`}>{r.rule}</span>
-                </div>
-              ))}
+              {trace.rulesEvaluated.filter((r) => r.fired).map((r) => {
+                const verdict = eligibleVerdict(r.metadata)
+                return (
+                  <div key={r.rule} className={styles.ruleRow}>
+                    <div className={`${styles.dot} ${styles.dotFired}`} />
+                    <div className={styles.ruleBody}>
+                      <span className={`${styles.ruleName} ${styles.ruleNameFired}`}>{r.rule}</span>
+                      {r.reason && <span className={styles.ruleReason}>{r.reason}</span>}
+                      {verdict && (
+                        <span className={`${styles.ruleVerdict} ${verdict === 'ELIGIBLE' ? styles.verdictYes : styles.verdictNo}`}>
+                          {verdict}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
               {trace.rulesEvaluated.filter((r) => !r.fired).map((r) => (
                 <div key={r.rule} className={styles.ruleRow}>
                   <div className={`${styles.dot} ${styles.dotInactive}`} />

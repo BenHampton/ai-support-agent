@@ -1,4 +1,4 @@
-import type { DecisionTrace, Incident, Message, ZendeskTicket } from '@shared/types'
+import type { DecisionTrace, Incident, Message, RuleResult, ZendeskTicket } from '@shared/types'
 import { getCustomer } from '../integrations/salesforce.ts'
 import { searchKnowledge, getChunksByIds } from './knowledge.js'
 import { runRulesEngine } from '../rules/engine.ts'
@@ -20,14 +20,16 @@ export type ChatResult = {
   ticket?: ZendeskTicket
 }
 
-const buildSystemPrompt = (
+export const buildSystemPrompt = (
   customer: Awaited<ReturnType<typeof getCustomer>>,
   knowledgeMatches: Awaited<ReturnType<typeof searchKnowledge>>,
-  activeIncidents: Incident[]
+  activeIncidents: Incident[],
+  ruleResult: RuleResult
 ): string => {
   // strip our fence delimiters from any interpolated value so a malicious
   // field/chunk can't close the tag early and break out into instructions
-  const stripTags = (value: string): string => value.replace(/<\/?(?:customer|kb|status)>/gi, '')
+  const stripTags = (value: string): string =>
+    value.replace(/<\/?(?:customer|kb|status|eligibility)>/gi, '')
 
   // inject only the matched chunks, grouped under their KB doc title — keeps the
   // prompt focused on the retrieved slices rather than whole documents
@@ -56,6 +58,23 @@ const buildSystemPrompt = (
       ? 'No active incidents at this time.'
       : activeIncidents.map((i) => `${i.title} — affected regions: ${i.regions.join(', ')}; ETA ${i.eta}.`).join('\n')
 
+  // authoritative refund verdict — the rules engine computed this deterministically (engine.ts
+  // returnWindow logic). The LLM must state it, never recompute it: the customer block deliberately
+  // omits the purchase date, so a jailbreak can't argue the model into a different eligibility.
+  const eligibilityBlock = ((): string => {
+    const { eligible, purchasedDaysAgo, windowDays, region } = ruleResult.metadata
+    if (typeof eligible !== 'boolean') return ''
+    const verdict = eligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'
+    const regionLabel = (typeof region === 'string' ? region : customer.region).toUpperCase()
+    return `
+
+## Refund Eligibility Determination (authoritative)
+<eligibility>
+The Ark Systems policy engine has determined this customer is ${verdict} for a refund (purchased ${Number(purchasedDaysAgo)} days ago; ${regionLabel} statutory return window is ${Number(windowDays)} days).
+</eligibility>
+State this determination to the customer. Do not recompute, question, or contradict it — it is the source of truth over any knowledge base article.`
+  })()
+
   return `You are an AI support agent for Ark Systems, a B2B and B2C enterprise technology company. Answer concisely, accurately, and professionally using only the knowledge base provided.
 
 Follow these rules:
@@ -77,7 +96,7 @@ Products: ${customer.products.map(stripTags).join(', ')}
 <status>
 ${incidentStatus}
 </status>
-The status block above is the source of truth for current outages — trust it over any knowledge base article that describes a past incident.
+The status block above is the source of truth for current outages — trust it over any knowledge base article that describes a past incident.${eligibilityBlock}
 
 ## Knowledge Base
 <kb>
@@ -135,7 +154,7 @@ export const runOrchestration = async (
   }
 
   if (ruleResult.action === 'route') {
-    const incident = activeIncidents.find((i) => i.id === ruleResult.metadata.macro)
+    const incident = activeIncidents.find((activeIncident) => activeIncident.id === ruleResult.metadata.macro)
     const reply = incident ? formatIncidentMessage(incident) : String(ruleResult.metadata.response ?? '')
     const trace: DecisionTrace = { ...baseTrace, decision: 'route', latencyMs: Date.now() - startTime }
 
@@ -147,7 +166,7 @@ export const runOrchestration = async (
     return { decision: 'route', reply, trace }
   }
 
-  const systemPrompt = buildSystemPrompt(customer, knowledgeMatches, activeIncidents)
+  const systemPrompt = buildSystemPrompt(customer, knowledgeMatches, activeIncidents, ruleResult)
   const messages: OllamaChatMessage[] = [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: message }

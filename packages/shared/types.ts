@@ -51,6 +51,9 @@ export type RuleEvaluation = {
   rule: string
   fired: boolean
   reason: string
+  // computed outputs of the fired rule (e.g. refund `eligible`) — carried into the trace so the
+  // deterministic verdict is auditable in the UI, not just the reason prose. Absent on non-fired rows.
+  metadata?: Record<string, unknown>
 }
 
 export type Incident = {

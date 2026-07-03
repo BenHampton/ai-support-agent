@@ -68,6 +68,20 @@ describe('runRulesEngine', () => {
     expect(firedRule(evaluations)).toBe('refundEligibilityRule')
   })
 
+  it('refundEligibilityRule: carries the computed eligibility verdict in the fired evaluation metadata', () => {
+    const { evaluations } = runRulesEngine({
+      customer: makeCustomer({ customerId: 'consumer-eu', region: 'eu', purchaseDate: '2026-04-24' }),
+      query: 'Can I get a refund?',
+      knowledgeMatches: [match('return-policy-eu', 0.7)],
+      activeIncidents: []
+    })
+    const fired = evaluations.find((e) => e.fired)
+    expect(fired?.rule).toBe('refundEligibilityRule')
+    // purchased well outside the EU 14-day window → deterministic verdict must be false, and it
+    // must survive into the trace (RuleEvaluation.metadata), not just the reason string
+    expect(fired?.metadata?.eligible).toBe(false)
+  })
+
   it('first-match-wins: VIP billing beats selfServeBilling', () => {
     const { evaluations } = runRulesEngine({
       customer: makeCustomer({ tier: 'vip' }),

@@ -10,6 +10,10 @@ type Props = {
 const confidenceLevel = (score: number): 'confHigh' | 'confMed' | 'confLow' =>
   score >= 0.7 ? 'confHigh' : score >= 0.4 ? 'confMed' : 'confLow'
 
+// surface a rule's computed refund verdict as a structured chip, not just buried in the reason prose
+const eligibleVerdict = (metadata?: Record<string, unknown>): 'ELIGIBLE' | 'NOT ELIGIBLE' | null =>
+  typeof metadata?.eligible === 'boolean' ? (metadata.eligible ? 'ELIGIBLE' : 'NOT ELIGIBLE') : null
+
 export const TracePanel = ({ trace, isOpen, onToggle }: Props): JSX.Element => {
   return (
     <div className={`${styles.panel} ${isOpen ? '' : styles.panelCollapsed}`}>
@@ -71,15 +75,23 @@ export const TracePanel = ({ trace, isOpen, onToggle }: Props): JSX.Element => {
 
               <div className={styles.section}>
                 <div className={styles.sectionLabel}>Rules</div>
-                {trace.rulesEvaluated.map((r) => (
-                  <div key={r.rule} className={styles.ruleRow}>
-                    <div className={`${styles.ruleDot} ${r.fired ? styles.dotFired : styles.dotInactive}`} />
-                    <div className={styles.ruleBody}>
-                      <div className={styles.ruleName}>{r.rule}</div>
-                      <div className={styles.ruleReason}>{r.reason}</div>
+                {trace.rulesEvaluated.map((r) => {
+                  const verdict = eligibleVerdict(r.metadata)
+                  return (
+                    <div key={r.rule} className={styles.ruleRow}>
+                      <div className={`${styles.ruleDot} ${r.fired ? styles.dotFired : styles.dotInactive}`} />
+                      <div className={styles.ruleBody}>
+                        <div className={styles.ruleName}>{r.rule}</div>
+                        <div className={styles.ruleReason}>{r.reason}</div>
+                        {verdict && (
+                          <span className={`${styles.ruleVerdict} ${verdict === 'ELIGIBLE' ? styles.verdictYes : styles.verdictNo}`}>
+                            {verdict}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </>
           )}

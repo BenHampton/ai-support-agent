@@ -122,7 +122,7 @@ export const runRulesEngine = (
 
     if (passed) {
       const reason = interpolateReason(rule.reason, computed)
-      evaluations.push({ rule: rule.name, fired: true, reason })
+      evaluations.push({ rule: rule.name, fired: true, reason, metadata: computed })
       for (let j = i + 1; j < config.rules.length; j++) {
         evaluations.push({ rule: config.rules[j].name, fired: false, reason: 'earlier rule matched' })
       }

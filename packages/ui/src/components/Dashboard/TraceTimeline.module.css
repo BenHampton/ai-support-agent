@@ -149,6 +149,12 @@
   background: var(--rule-inactive);
 }
 
+.ruleBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .ruleName {
   font-family: monospace;
   color: var(--text-mono);
@@ -157,6 +163,32 @@
 
 .ruleNameFired {
   color: var(--decision-answer);
+}
+
+.ruleReason {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.ruleVerdict {
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 99px;
+  text-transform: uppercase;
+}
+
+.verdictYes {
+  color: var(--decision-answer);
+  background: var(--decision-answer-soft);
+}
+
+.verdictNo {
+  color: var(--decision-escalate);
+  background: var(--decision-escalate-soft);
 }
 
 .meta {
