@@ -1,4 +1,7 @@
 keywords:
+  # NOTE: keyword routing is approximate. Ambiguous terms (price/cost/fee) were removed because they
+  # misclassify non-billing questions (e.g. "90-day price-match guarantee") as billing. The robust
+  # fix is grounding-aware routing (escalate when the KB doesn't actually answer) — see v2.md.
   billing:
     - billing
     - bill
@@ -11,9 +14,6 @@ keywords:
     - credit
     - overcharge
     - debit
-    - fee
-    - cost
-    - price
   outage:
     - outage
     - down

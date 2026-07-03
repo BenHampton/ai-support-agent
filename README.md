@@ -121,3 +121,11 @@ Retrieval operates at sub-document granularity, not whole documents:
 | Embeddings | Ollama — `nomic-embed-text` |
 | Vector search | In-memory cosine similarity |
 | Mock integrations | Hardcoded TypeScript (Salesforce, Zendesk) |
+
+---
+
+## Deferred scope
+
+See [`v2.md`](./v2.md) for work intentionally left out of v1 and why — the robust fixes, known
+tradeoffs, and roadmap behind the "smallest correct fix now" calls (e.g. keyword-routing precision vs.
+grounding-aware routing). It doubles as the tradeoffs/roadmap source for the project write-up.
