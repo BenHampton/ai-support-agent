@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import type { DecisionTrace } from '@shared/types'
-import { CustomerSelector } from './CustomerSelector'
-import { ChatWindow } from './ChatWindow'
-import { TracePanel } from './TracePanel'
-import styles from './ChatView.module.css'
+import { CustomerSelector } from './components/CustomerSelector/CustomerSelector'
+import { ChatWindow } from './components/ChatWindow/ChatWindow'
+import { TracePanel } from './components/TracePanel/TracePanel'
+import styles from './Chat.module.css'
 
 // generated once at module load — persists across customer switches within a page session
 const SESSION_ID = `session-${Date.now()}`
 
-export const ChatView = (): JSX.Element => {
+export const Chat = (): JSX.Element => {
   const [customerId, setCustomerId] = useState('')
   const [sessionId] = useState(SESSION_ID)
   const [trace, setTrace] = useState<DecisionTrace | null>(null)

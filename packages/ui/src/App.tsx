@@ -1,9 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { NavBar } from './components/NavBar/NavBar'
-import { ChatView } from './components/Chat/ChatView'
-import { DashboardView } from './components/Dashboard/DashboardView'
-import { TicketsView } from './components/Tickets/TicketsView'
-import { LandingView } from './components/Landing/LandingView'
+import { Chat } from './components/Chat/Chat'
+import { Dashboard } from './components/Dashboard/Dashboard'
+import { Tickets } from './components/Tickets/Tickets'
+import { Landing } from './components/Landing/Landing'
 import styles from './App.module.css'
 
 export const App = (): JSX.Element => (
@@ -11,10 +11,10 @@ export const App = (): JSX.Element => (
     <NavBar />
     <main className={styles.content}>
       <Routes>
-        <Route path="/" element={<LandingView />} />
-        <Route path="/chat" element={<ChatView />} />
-        <Route path="/dashboard" element={<DashboardView />} />
-        <Route path="/tickets" element={<TicketsView />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/tickets" element={<Tickets />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </main>

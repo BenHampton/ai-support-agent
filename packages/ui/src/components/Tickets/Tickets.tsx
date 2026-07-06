@@ -1,9 +1,9 @@
 import { Fragment, useEffect, useState } from 'react'
 import type { ZendeskTicket } from '@shared/types'
 import { fetchTickets } from '../../api'
-import styles from './TicketsView.module.css'
+import styles from './Tickets.module.css'
 
-export const TicketsView = (): JSX.Element => {
+export const Tickets = (): JSX.Element => {
   const [tickets, setTickets] = useState<ZendeskTicket[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
 

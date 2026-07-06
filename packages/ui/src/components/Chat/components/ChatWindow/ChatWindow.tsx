@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DecisionTrace, ZendeskTicket } from '@shared/types'
-import { streamChat } from '../../api'
-import { EscalationCard } from './EscalationCard'
+import { streamChat } from '../../../../api'
+import { EscalationCard } from '../EscalationCard/EscalationCard'
 import styles from './ChatWindow.module.css'
 
 export type ChatMessage = {

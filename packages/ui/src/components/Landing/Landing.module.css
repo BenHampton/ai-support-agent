@@ -37,22 +37,6 @@
   transform: scaleX(-1);
 }
 
-.circuit {
-  height: 100%;
-  width: 100%;
-}
-
-.circuitLines path {
-  stroke: var(--accent);
-  stroke-width: 1.5;
-  opacity: 0.45;
-}
-
-.circuitNodes circle {
-  fill: var(--accent);
-  opacity: 0.85;
-}
-
 /* ---- hero ---- */
 .hero {
   position: relative;

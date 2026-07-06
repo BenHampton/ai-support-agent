@@ -26,10 +26,12 @@ export const getOrCreateSession = (sessionId: string, customerId: string): Sessi
   return sessionMap.get(sessionId)!
 }
 
-export const appendToSession = (sessionId: string, message: Message, trace: DecisionTrace): void => {
+// one chat turn = the messages it produced (user + assistant) plus a single DecisionTrace. The trace is
+// per-request, so it is stored once here — not once per message — to avoid duplicate trace cards.
+export const appendTurn = (sessionId: string, messages: Message[], trace: DecisionTrace): void => {
   const session = sessionMap.get(sessionId)
   if (!session) return
-  session.messages.push(message)
+  session.messages.push(...messages)
   session.traces.push(trace)
   session.updatedAt = new Date().toISOString()
 }

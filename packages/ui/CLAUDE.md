@@ -21,6 +21,7 @@ Frontend-specific guidance. Auto-loaded when working under `packages/ui/`. See t
 ## Architecture Principles
 
 - **Component-per-file, functional, named exports** — props typed with an explicit local `type Props`; co-locate small component-specific types.
+- **Feature folder structure** — each feature's **main view sits flat at the feature root**, named after the feature (no `View` suffix) with co-located CSS: `components/<Feature>/<Feature>.tsx` + `<Feature>.module.css` (e.g. `Dashboard/Dashboard.tsx`). Its **child components nest under a `components/` subfolder**, each in its own directory: `components/<Feature>/components/<Child>/<Child>.tsx` + `<Child>.module.css` (e.g. `Dashboard/components/SessionList/`). The main view imports a child as `./components/<Child>/<Child>`; a child imports a sibling child as `../<Sibling>/<Sibling>`.
 - **State lives at the view orchestrator** — lift state to the view (`ChatView`, `SessionList`) and pass down as props; `useState` by default, no global store. Reach for context only when drilling would exceed 2 levels.
 - **Single typed API boundary** — components never call `fetch` directly; all backend access goes through `packages/ui/src/api.ts`. Keep request/response shapes in sync with `@shared/types`.
 - **Exhaustive event handling** — stream/SSE events are a discriminated union (`SseEvent`: `token` | `done` | `error`); handle every variant, never silently drop one.

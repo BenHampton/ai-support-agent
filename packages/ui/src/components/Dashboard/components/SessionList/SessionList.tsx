@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
-import { fetchSessions, fetchSessionTrace } from '../../api'
+import { fetchSessions, fetchSessionTrace } from '../../../../api'
 import type { DecisionTrace, Decision } from '@shared/types'
-import { TraceTimeline } from './TraceTimeline'
+import { TraceTimeline } from '../TraceTimeline/TraceTimeline'
 import styles from './SessionList.module.css'
 
 type Session = {
@@ -60,7 +60,7 @@ export const SessionList = (): JSX.Element => {
             <tr>
               <th className={styles.th}>Session</th>
               <th className={styles.th}>Customer</th>
-              <th className={styles.th}>Messages</th>
+              <th className={styles.th}>Requests</th>
               <th className={styles.th}>Last Decision</th>
               <th className={styles.th}>Last Active</th>
             </tr>

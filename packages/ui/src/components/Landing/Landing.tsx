@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
-import { CircuitDecor } from './CircuitDecor'
-import styles from './LandingView.module.css'
+import { CircuitDecor } from './components/CircuitDecor/CircuitDecor'
+import styles from './Landing.module.css'
 
-export const LandingView = (): JSX.Element => {
+export const Landing = (): JSX.Element => {
   const navigate = useNavigate()
 
   return (

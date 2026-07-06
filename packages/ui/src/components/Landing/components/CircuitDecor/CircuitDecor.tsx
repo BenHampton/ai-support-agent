@@ -1,4 +1,4 @@
-import styles from './LandingView.module.css'
+import styles from './CircuitDecor.module.css'
 
 // Decorative circuit-board traces (inline SVG, no external assets). Rendered on both sides of the hero;
 // the right instance is mirrored via CSS (scaleX(-1)). Purely decorative — aria-hidden.

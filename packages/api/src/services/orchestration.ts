@@ -6,7 +6,7 @@ import { createTicket } from '../integrations/zendesk.ts'
 import { getActiveIncidents, formatIncidentMessage } from '../integrations/arkcloud-status.ts'
 import { chat, type OllamaChatMessage } from './ollama.js'
 import { formatRefundEligibilityVerdict } from './refund-eligibility.ts'
-import { getOrCreateSession, appendToSession } from '../store/sessions.ts'
+import { getOrCreateSession, appendTurn } from '../store/sessions.ts'
 import { sanitizeForDownstream } from '../util/sanitize.ts'
 
 export type ChatInput = {
@@ -156,8 +156,7 @@ export const runOrchestration = async (
 
     const userMsg: Message = { id: `${messageId}-u`, role: 'user', content: message, timestamp: new Date().toISOString() }
     const assistantMsg: Message = { id: `${messageId}-a`, role: 'assistant', content: reply, timestamp: new Date().toISOString(), trace }
-    appendToSession(sessionId, userMsg, trace)
-    appendToSession(sessionId, assistantMsg, trace)
+    appendTurn(sessionId, [userMsg, assistantMsg], trace)
 
     return { decision: 'escalate', reply, trace, ticket }
   }
@@ -169,8 +168,7 @@ export const runOrchestration = async (
 
     const userMsg: Message = { id: `${messageId}-u`, role: 'user', content: message, timestamp: new Date().toISOString() }
     const assistantMsg: Message = { id: `${messageId}-a`, role: 'assistant', content: reply, timestamp: new Date().toISOString(), trace }
-    appendToSession(sessionId, userMsg, trace)
-    appendToSession(sessionId, assistantMsg, trace)
+    appendTurn(sessionId, [userMsg, assistantMsg], trace)
 
     return { decision: 'route', reply, trace }
   }
@@ -201,8 +199,7 @@ export const runOrchestration = async (
 
   const userMsg: Message = { id: `${messageId}-u`, role: 'user', content: message, timestamp: new Date().toISOString() }
   const assistantMsg: Message = { id: `${messageId}-a`, role: 'assistant', content: fullReply, timestamp: new Date().toISOString(), trace }
-  appendToSession(sessionId, userMsg, trace)
-  appendToSession(sessionId, assistantMsg, trace)
+  appendTurn(sessionId, [userMsg, assistantMsg], trace)
 
   return { decision: 'answer', reply: fullReply, trace }
 }

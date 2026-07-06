@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Customer } from '@shared/types'
-import { fetchCustomers } from '../../api'
+import { fetchCustomers } from '../../../../api'
 import styles from './CustomerSelector.module.css'
 
 type Props = {
