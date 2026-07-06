@@ -5,6 +5,7 @@ import { knowledgeRoutes } from './routes/knowledge.ts'
 import { chatRoutes } from './routes/chat.ts'
 import { sessionRoutes } from './routes/sessions.ts'
 import { customerRoutes } from './routes/customers.ts'
+import { ticketRoutes } from './routes/tickets.ts'
 
 const app = Fastify({ logger: { level: 'info' } })
 
@@ -13,6 +14,7 @@ await app.register(knowledgeRoutes)
 await app.register(chatRoutes)
 await app.register(sessionRoutes)
 await app.register(customerRoutes)
+await app.register(ticketRoutes)
 
 app.get('/health', async () => {
   return { data: { status: 'ok' } }

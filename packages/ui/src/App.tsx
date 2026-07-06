@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { ChatView } from './components/Chat/ChatView'
 import { DashboardView } from './components/Dashboard/DashboardView'
+import { TicketsView } from './components/Tickets/TicketsView'
 import styles from './App.module.css'
 
-type Tab = 'chat' | 'dashboard'
+type Tab = 'chat' | 'dashboard' | 'tickets'
 
 export const App = (): JSX.Element => {
   const [tab, setTab] = useState<Tab>('chat')
@@ -31,10 +32,18 @@ export const App = (): JSX.Element => {
           >
             Dashboard
           </button>
+          <button
+            className={`${styles.tab} ${tab === 'tickets' ? styles.tabActive : ''}`}
+            onClick={() => setTab('tickets')}
+          >
+            Tickets
+          </button>
         </div>
       </div>
       <div className={styles.content}>
-        {tab === 'chat' ? <ChatView /> : <DashboardView />}
+        {tab === 'chat' && <ChatView />}
+        {tab === 'dashboard' && <DashboardView />}
+        {tab === 'tickets' && <TicketsView />}
       </div>
     </div>
   )

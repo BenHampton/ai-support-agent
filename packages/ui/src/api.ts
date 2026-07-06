@@ -46,6 +46,13 @@ export const streamChat = async (
   }
 }
 
+export const fetchTickets = async (): Promise<ZendeskTicket[]> => {
+  const res = await fetch('/api/tickets')
+  const tickets = (await res.json() as { data: ZendeskTicket[] }).data
+  // newest-first for the list view
+  return tickets.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+}
+
 export const fetchSessions = async () => {
   const res = await fetch('/api/sessions')
   return (await res.json() as { data: unknown[] }).data
