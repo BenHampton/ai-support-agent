@@ -65,6 +65,22 @@ describe('buildSystemPrompt — refund eligibility boundary', () => {
     const prompt = buildSystemPrompt(makeCustomer(), [], [], refundResult({}))
     expect(prompt).not.toContain('<eligibility>')
   })
+
+  it('least privilege: injects tailoring fields but not the internal customer id / account status', () => {
+    const prompt = buildSystemPrompt(
+      makeCustomer({ customerId: 'consumer-us', accountStatus: 'suspended', tier: 'smb', region: 'eu' }),
+      [],
+      [],
+      refundResult({})
+    )
+    // tailoring fields the model legitimately needs
+    expect(prompt).toContain('SMB')
+    expect(prompt).toContain('EU')
+    // internal fields the model never needs — must not be echoable back to a user
+    expect(prompt).not.toContain('consumer-us')
+    expect(prompt).not.toContain('suspended')
+    expect(prompt).not.toContain('Customer ID')
+  })
 })
 
 describe('runOrchestration — code owns the refund verdict', () => {
