@@ -5,7 +5,8 @@ const LINKS: { to: string; label: string; end?: boolean }[] = [
   { to: '/', label: 'Home', end: true },
   { to: '/chat', label: 'Chat' },
   { to: '/dashboard', label: 'Dashboard' },
-  { to: '/tickets', label: 'Tickets' }
+  { to: '/tickets', label: 'Tickets' },
+  { to: '/admin', label: 'Admin' }
 ]
 
 // Single shared menu, rendered on every route (App shell). Active route highlighted via NavLink.

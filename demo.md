@@ -113,6 +113,37 @@ days-since-purchase — compare its wording with Scenario 1.
 
 ---
 
+## Scenario 7 — Zendesk outage, graceful degradation
+
+Demonstrates resilience. When an escalation fires but the ticketing backend (Zendesk) is unreachable,
+the escalation is **never lost**: the intent is written to a durable outbox before the Zendesk call,
+the customer gets an honest provisional reference, and a background reconciler creates the real ticket
+once Zendesk recovers. The dependency we escalate *to* can be down without swallowing the escalation.
+
+**Try it**
+1. Simulate the outage:
+   ```bash
+   curl -X POST localhost:3001/admin/zendesk/down \
+     -H 'content-type: application/json' -d '{"down":true,"mode":"timeout"}'
+   ```
+2. Escalate: select `vip-eu` (Claudia Ferreira — VIP, EU), send *"I have a billing dispute on my invoice"*.
+3. Check the queue depth: `curl localhost:3001/admin/zendesk/status` → `outboxDepth: 1`.
+4. Restore Zendesk:
+   ```bash
+   curl -X POST localhost:3001/admin/zendesk/down \
+     -H 'content-type: application/json' -d '{"down":false}'
+   ```
+
+**Expect:** the escalation still returns an **ESCALATE** with a `PENDING-…` reference (not a `ZD-…` ID),
+and `zendeskTicketId` is absent in the trace. The intent sits in `data/escalation-outbox.json`. Within
+`RECONCILER_INTERVAL_MS` after step 4, the reconciler drains the outbox (`outboxDepth` → 0), creates the
+real ticket, and back-fills the `ZD-…` ID onto the session trace — visible in the Dashboard/Trace panel.
+
+> **Durability check:** restart the API between steps 3 and 4. The pending escalation is still in
+> `data/escalation-outbox.json` and reconciles after recovery — nothing is lost to a process restart.
+
+---
+
 ## Reading the trace
 
 Every scenario writes a full `DecisionTrace`. Map what you see in the UI to these fields:
@@ -120,7 +151,8 @@ Every scenario writes a full `DecisionTrace`. Map what you see in the UI to thes
 - **`knowledgeMatches`** — the top-5 retrieved chunks with cosine scores (Scenarios 1, 3, 4, 5).
 - **`rulesEvaluated`** — each rule with `fired` / `reason`; first match wins, so order matters.
 - **`decision`** — `answer` | `escalate` | `route`.
-- **`zendeskTicketId`** — present only on escalations (Scenario 2).
+- **`zendeskTicketId`** — present on escalations once the ticket is created (Scenario 2); absent while an
+  escalation is queued during a Zendesk outage, then back-filled by the reconciler (Scenario 7).
 - **`latencyMs`** — end-to-end time; escalate/route paths are faster because they skip the LLM.
 
 Use the **Trace panel** in the Chat view for the live trace, or the **Dashboard** session list and

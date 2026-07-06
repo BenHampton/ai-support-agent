@@ -2,7 +2,8 @@ import type { DecisionTrace, Incident, Message, RuleResult, ZendeskTicket } from
 import { getCustomer } from '../integrations/salesforce.ts'
 import { searchKnowledge, getChunksByIds } from './knowledge.js'
 import { runRulesEngine } from '../rules/engine.ts'
-import { createTicket } from '../integrations/zendesk.ts'
+import { createTicket, ZendeskUnavailableError, type CreateTicketInput } from '../integrations/zendesk.ts'
+import { enqueue, markSubmitted, recordFailure } from '../store/escalation-outbox.ts'
 import { getActiveIncidents, formatIncidentMessage } from '../integrations/arkcloud-status.ts'
 import { chat, type OllamaChatMessage } from './ollama.js'
 import { formatRefundEligibilityVerdict } from './refund-eligibility.ts'
@@ -140,7 +141,10 @@ export const runOrchestration = async (
   }
 
   if (ruleResult.action === 'escalate') {
-    const ticket = await createTicket({
+    // stable per-request key — dedupes retries and the reconciler so one escalation = one ticket
+    const idempotencyKey = messageId
+    const payload: CreateTicketInput = {
+      idempotencyKey,
       customerId,
       sessionId,
       priority: (ruleResult.metadata.priority as 'urgent' | 'high' | 'normal' | 'low') ?? 'normal',
@@ -149,10 +153,33 @@ export const runOrchestration = async (
       // place user input leaves the LLM boundary. Sanitize so a payload can't render as active markup
       // or deceive a human agent downstream.
       conversationContext: sanitizeForDownstream(message)
-    })
+    }
 
-    const reply = `Your request has been escalated to our support team. A ticket has been created (${ticket.id}) and you will hear from us within your SLA window. We apologize for any inconvenience.`
-    const trace: DecisionTrace = { ...baseTrace, decision: 'escalate', zendeskTicketId: ticket.id, latencyMs: Date.now() - startTime }
+    // write-ahead: capture the escalation intent durably BEFORE calling Zendesk, so a backend outage
+    // or a crash mid-call can never lose it. The reconciler drains this once Zendesk recovers.
+    const now = new Date().toISOString()
+    enqueue({ idempotencyKey, status: 'pending', payload, sessionId, messageId, attempts: 0, createdAt: now, updatedAt: now })
+
+    let ticket: ZendeskTicket
+    let reply: string
+    let zendeskTicketId: string | undefined
+
+    try {
+      ticket = await createTicket(payload)
+      markSubmitted(idempotencyKey, ticket.id)
+      zendeskTicketId = ticket.id
+      reply = `Your request has been escalated to our support team. A ticket has been created (${ticket.id}) and you will hear from us within your SLA window. We apologize for any inconvenience.`
+    } catch (err) {
+      if (!(err instanceof ZendeskUnavailableError)) throw err // a real bug should still surface
+      // Zendesk is unreachable — degrade gracefully. The escalation is already durable in the outbox;
+      // give the customer an honest provisional reference instead of claiming a ticket exists.
+      recordFailure(idempotencyKey, err.message)
+      ticket = { id: `PENDING-${idempotencyKey}`, customerId, sessionId, priority: payload.priority, reason: payload.reason, conversationContext: payload.conversationContext, createdAt: now }
+      reply = `Your request has been escalated to our support team (reference ${ticket.id}). A human agent will follow up within your SLA window — you don't need to do anything further. We apologize for any inconvenience.`
+      zendeskTicketId = undefined // reconciler backfills the real ID once Zendesk recovers
+    }
+
+    const trace: DecisionTrace = { ...baseTrace, decision: 'escalate', zendeskTicketId, latencyMs: Date.now() - startTime }
 
     const userMsg: Message = { id: `${messageId}-u`, role: 'user', content: message, timestamp: new Date().toISOString() }
     const assistantMsg: Message = { id: `${messageId}-a`, role: 'assistant', content: reply, timestamp: new Date().toISOString(), trace }

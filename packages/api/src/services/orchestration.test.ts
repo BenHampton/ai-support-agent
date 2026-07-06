@@ -1,7 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import type { RuleResult } from '@shared/types'
 import { buildSystemPrompt, runOrchestration } from './orchestration.ts'
 import { makeCustomer } from '../rules/test-fixtures.ts'
+import { setZendeskDown } from '../store/feature-flags.ts'
+import { resetZendeskResilience } from '../integrations/zendesk.ts'
+import { outboxSnapshot } from '../store/escalation-outbox.ts'
+import { getSession } from '../store/sessions.ts'
 
 // The rules engine computes refund eligibility deterministically (engine.ts returnWindow logic).
 // The verdict is owned by CODE, not the model: the orchestrator emits it before the LLM runs, and the
@@ -96,6 +100,38 @@ describe('runOrchestration — downstream escaping on escalation', () => {
     expect(context).not.toContain('<img')
     expect(context).not.toContain('<')
     expect(context).toContain('&lt;img src=x onerror=alert(1)&gt;')
+  })
+})
+
+describe('runOrchestration — Zendesk outage degrades gracefully', () => {
+  afterEach(() => {
+    setZendeskDown(false)
+    resetZendeskResilience()
+  })
+
+  it('when Zendesk is down, escalation still succeeds with a provisional reference and is queued durably', async () => {
+    resetZendeskResilience()
+    setZendeskDown(true, 'timeout')
+
+    // vip-eu + billing keyword → vipBillingRule escalates; the Zendesk create fails, so we degrade
+    const result = await runOrchestration(
+      { sessionId: 'test-outage', customerId: 'vip-eu', message: 'I have a billing dispute on my invoice' },
+      () => {}
+    )
+
+    expect(result.decision).toBe('escalate')
+    // honest provisional reference — never claims a real ticket exists
+    expect(result.reply).toContain('PENDING-')
+    expect(result.ticket?.id).toMatch(/^PENDING-/)
+    expect(result.trace.zendeskTicketId).toBeUndefined()
+
+    // the intent is captured durably in the outbox, pending reconciliation
+    const record = outboxSnapshot().find((r) => r.idempotencyKey === result.trace.messageId)
+    expect(record?.status).toBe('pending')
+
+    // the turn is still recorded on the session — nothing is silently dropped
+    const session = getSession('test-outage')
+    expect(session?.traces.some((t) => t.messageId === result.trace.messageId)).toBe(true)
   })
 })
 

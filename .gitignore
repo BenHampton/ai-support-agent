@@ -55,3 +55,7 @@ build/
 .claude/settings.local.json
 
 /spec.md
+
+# Runtime escalation outbox (durable queue written at runtime; not source)
+data/escalation-outbox.json
+data/escalation-outbox.json.tmp

@@ -53,6 +53,26 @@ export const fetchTickets = async (): Promise<ZendeskTicket[]> => {
   return tickets.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
+export type ZendeskFailureMode = 'timeout' | '503' | 'hang'
+export type ZendeskAdminStatus = { down: boolean; mode: ZendeskFailureMode; outboxDepth: number }
+
+export const fetchZendeskStatus = async (): Promise<ZendeskAdminStatus> => {
+  const res = await fetch('/api/admin/zendesk/status')
+  return (await res.json() as { data: ZendeskAdminStatus }).data
+}
+
+export const setZendeskDown = async (
+  down: boolean,
+  mode?: ZendeskFailureMode
+): Promise<{ down: boolean; mode: ZendeskFailureMode }> => {
+  const res = await fetch('/api/admin/zendesk/down', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ down, mode })
+  })
+  return (await res.json() as { data: { down: boolean; mode: ZendeskFailureMode } }).data
+}
+
 export const fetchSessions = async () => {
   const res = await fetch('/api/sessions')
   return (await res.json() as { data: unknown[] }).data
