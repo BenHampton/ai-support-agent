@@ -5,6 +5,7 @@ import { runRulesEngine } from '../rules/engine.ts'
 import { createTicket } from '../integrations/zendesk.ts'
 import { getActiveIncidents, formatIncidentMessage } from '../integrations/arkcloud-status.ts'
 import { chat, type OllamaChatMessage } from './ollama.js'
+import { formatRefundEligibilityVerdict } from './refund-eligibility.ts'
 import { getOrCreateSession, appendToSession } from '../store/sessions.ts'
 
 export type ChatInput = {
@@ -58,9 +59,11 @@ export const buildSystemPrompt = (
       ? 'No active incidents at this time.'
       : activeIncidents.map((i) => `${i.title} — affected regions: ${i.regions.join(', ')}; ETA ${i.eta}.`).join('\n')
 
-  // authoritative refund verdict — the rules engine computed this deterministically (engine.ts
-  // returnWindow logic). The LLM must state it, never recompute it: the customer block deliberately
-  // omits the purchase date, so a jailbreak can't argue the model into a different eligibility.
+  // refund verdict is owned by code, not the model. The rules engine computed eligibility
+  // deterministically (engine.ts returnWindow logic) and the orchestrator emits the authoritative
+  // verdict line itself (formatRefundEligibilityVerdict) before the LLM runs. This block only gives
+  // the model read-only context to tailor its process help — it must NOT state or assess eligibility.
+  // The customer block also omits the purchase date, so the model can't recompute it.
   const eligibilityBlock = ((): string => {
     const { eligible, purchasedDaysAgo, windowDays, region } = ruleResult.metadata
     if (typeof eligible !== 'boolean') return ''
@@ -68,11 +71,11 @@ export const buildSystemPrompt = (
     const regionLabel = (typeof region === 'string' ? region : customer.region).toUpperCase()
     return `
 
-## Refund Eligibility Determination (authoritative)
+## Refund Eligibility Determination (already communicated by the system)
 <eligibility>
-The Ark Systems policy engine has determined this customer is ${verdict} for a refund (purchased ${Number(purchasedDaysAgo)} days ago; ${regionLabel} statutory return window is ${Number(windowDays)} days).
+The Ark Systems policy engine has determined this customer is ${verdict} for a refund (purchased ${Number(purchasedDaysAgo)} days ago; ${regionLabel} statutory return window is ${Number(windowDays)} days). The customer has ALREADY been shown this determination.
 </eligibility>
-State this determination to the customer. Do not recompute, question, or contradict it — it is the source of truth over any knowledge base article.`
+Do not state, confirm, deny, recompute, or assess eligibility yourself — it has already been delivered and is not yours to decide. Only help the customer with the return/RMA process and timelines grounded in the knowledge base, appropriate to the determination above.`
   })()
 
   return `You are an AI support agent for Ark Systems, a B2B and B2C enterprise technology company. Answer concisely, accurately, and professionally using only the knowledge base provided.
@@ -173,6 +176,16 @@ export const runOrchestration = async (
   ]
 
   let fullReply = ''
+
+  // code owns the verdict: emit the deterministic eligibility line first, then let the LLM draft the
+  // grounded process help after it. The customer sees the verdict from code, never from the model.
+  const verdict = formatRefundEligibilityVerdict(ruleResult, customer)
+  if (verdict) {
+    const verdictBlock = `${verdict}\n\n`
+    fullReply += verdictBlock
+    onToken(verdictBlock)
+  }
+
   await chat(messages, (token) => {
     fullReply += token
     onToken(token)

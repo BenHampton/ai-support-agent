@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { runOrchestration } from '../services/orchestration.ts'
+import { MAX_MESSAGE_LENGTH } from '../config.ts'
 
 type ChatBody = {
   sessionId: string
@@ -14,6 +15,12 @@ export const chatRoutes = async (app: FastifyInstance): Promise<void> => {
     if (!sessionId || !customerId || !message?.trim()) {
       return reply.code(422).send({
         error: { code: 'INVALID_INPUT', message: 'sessionId, customerId, and message are required', statusCode: 422 }
+      })
+    }
+
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return reply.code(422).send({
+        error: { code: 'INVALID_INPUT', message: `message exceeds ${MAX_MESSAGE_LENGTH} characters`, statusCode: 422 }
       })
     }
 

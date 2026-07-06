@@ -14,3 +14,7 @@ export const DATA_DIR = process.env.DATA_DIR
 
 // outage demo toggle — default on; set OUTAGE_ACTIVE=false to simulate "no active incident"
 export const OUTAGE_ACTIVE = process.env.OUTAGE_ACTIVE !== 'false'
+
+// reject absurdly long messages before they reach embedding/LLM — bounds cost and shrinks the
+// prompt-injection surface. A general guard, not refund-specific.
+export const MAX_MESSAGE_LENGTH = Number(process.env.MAX_MESSAGE_LENGTH ?? 4000)
