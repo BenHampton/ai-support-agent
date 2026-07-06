@@ -83,6 +83,22 @@ describe('buildSystemPrompt — refund eligibility boundary', () => {
   })
 })
 
+describe('runOrchestration — downstream escaping on escalation', () => {
+  it('sanitizes user text before it lands in the Zendesk ticket conversationContext', async () => {
+    // vip-eu + billing keyword → vipBillingRule escalates (no LLM), creating a ticket from the raw message
+    const result = await runOrchestration(
+      { sessionId: 'test-escalate', customerId: 'vip-eu', message: 'billing dispute <img src=x onerror=alert(1)>' },
+      () => {}
+    )
+
+    expect(result.decision).toBe('escalate')
+    const context = result.ticket?.conversationContext ?? ''
+    expect(context).not.toContain('<img')
+    expect(context).not.toContain('<')
+    expect(context).toContain('&lt;img src=x onerror=alert(1)&gt;')
+  })
+})
+
 describe('runOrchestration — code owns the refund verdict', () => {
   it('leads with the deterministic verdict even when the LLM tries to grant a full refund', async () => {
     const tokens: string[] = []

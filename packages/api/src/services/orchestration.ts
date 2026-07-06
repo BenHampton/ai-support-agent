@@ -7,6 +7,7 @@ import { getActiveIncidents, formatIncidentMessage } from '../integrations/arkcl
 import { chat, type OllamaChatMessage } from './ollama.js'
 import { formatRefundEligibilityVerdict } from './refund-eligibility.ts'
 import { getOrCreateSession, appendToSession } from '../store/sessions.ts'
+import { sanitizeForDownstream } from '../util/sanitize.ts'
 
 export type ChatInput = {
   sessionId: string
@@ -144,7 +145,10 @@ export const runOrchestration = async (
       sessionId,
       priority: (ruleResult.metadata.priority as 'urgent' | 'high' | 'normal' | 'low') ?? 'normal',
       reason: ruleResult.reason,
-      conversationContext: message
+      // raw user text crosses into an external system (Zendesk agent dashboard, logs) here — the one
+      // place user input leaves the LLM boundary. Sanitize so a payload can't render as active markup
+      // or deceive a human agent downstream.
+      conversationContext: sanitizeForDownstream(message)
     })
 
     const reply = `Your request has been escalated to our support team. A ticket has been created (${ticket.id}) and you will hear from us within your SLA window. We apologize for any inconvenience.`
