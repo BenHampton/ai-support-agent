@@ -54,6 +54,15 @@ export const Admin = (): JSX.Element => {
       .finally(() => setPending(false))
   }
 
+  const tiles = status
+    ? [
+        { label: 'Status', value: status.down ? 'Down' : 'Up' },
+        { label: 'Failure mode', value: status.down ? status.mode : '—' },
+        { label: 'Queued escalations', value: String(status.queueDepth) },
+        { label: 'Dead-lettered', value: String(status.deadLetterDepth), danger: status.deadLetterDepth > 0 }
+      ]
+    : []
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>Admin</div>
@@ -61,76 +70,76 @@ export const Admin = (): JSX.Element => {
         Simulate integration outages to exercise the resilience path. Local prototype only.
       </p>
 
-      <section className={styles.card} aria-labelledby="zendesk-heading">
-        <div className={styles.cardHead}>
-          <h2 id="zendesk-heading" className={styles.cardTitle}>Zendesk</h2>
-          {status && (
-            <span className={`${styles.pill} ${status.down ? styles.down : styles.up}`}>
-              {status.down ? 'Outage (simulated)' : 'Operational'}
-            </span>
-          )}
-        </div>
-
-        {loading && <div className={styles.muted}>Loading status…</div>}
-        {error && <div className={styles.error} role="alert">{error}</div>}
-
-        {status && !loading && (
-          <>
-            <dl className={styles.meta}>
-              <div className={styles.metaRow}>
-                <dt className={styles.metaKey}>Status</dt>
-                <dd className={styles.metaVal}>{status.down ? 'Down' : 'Up'}</dd>
-              </div>
-              <div className={styles.metaRow}>
-                <dt className={styles.metaKey}>Failure mode</dt>
-                <dd className={styles.metaVal}>{status.down ? status.mode : '—'}</dd>
-              </div>
-              <div className={styles.metaRow}>
-                <dt className={styles.metaKey}>Queued escalations</dt>
-                <dd className={styles.metaVal}>{status.queueDepth}</dd>
-              </div>
-              <div className={styles.metaRow}>
-                <dt className={styles.metaKey}>Dead-lettered</dt>
-                <dd className={`${styles.metaVal} ${status.deadLetterDepth > 0 ? styles.deadLetter : ''}`}>
-                  {status.deadLetterDepth}
-                </dd>
-              </div>
-            </dl>
-
-            <div className={styles.controls}>
-              <label className={styles.modeLabel}>
-                <span className={styles.modeLabelText}>Failure mode</span>
-                <select
-                  className={styles.select}
-                  value={mode}
-                  disabled={status.down || pending}
-                  onChange={(e) => setMode(e.target.value as ZendeskFailureMode)}
-                >
-                  {FAILURE_MODES.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </label>
-
-              <button
-                className={`${styles.button} ${status.down ? styles.restore : styles.simulate}`}
-                onClick={onToggle}
-                disabled={pending}
-              >
-                {pending ? 'Updating…' : status.down ? 'Restore Zendesk' : 'Simulate outage'}
-              </button>
-
-              {status.deadLetterDepth > 0 && (
-                <button className={`${styles.button} ${styles.replay}`} onClick={onReplay} disabled={pending}>
-                  {pending ? 'Working…' : `Replay ${status.deadLetterDepth} dead-letter${status.deadLetterDepth === 1 ? '' : 's'}`}
-                </button>
-              )}
-
-              <button className={styles.refresh} onClick={load} disabled={pending}>↺ Refresh</button>
-            </div>
-          </>
+      <div className={styles.sectionHead}>
+        <h2 className={styles.sectionTitle}>Zendesk</h2>
+        {status && (
+          <span className={`${styles.pill} ${status.down ? styles.down : styles.up}`}>
+            {status.down ? 'Outage (simulated)' : 'Operational'}
+          </span>
         )}
-      </section>
+      </div>
+
+      {loading && <div className={styles.muted}>Loading status…</div>}
+      {error && <div className={styles.error} role="alert">{error}</div>}
+
+      {status && !loading && (
+        <>
+          <dl className={styles.stats}>
+            {tiles.map((t) => (
+              <div key={t.label} className={styles.stat}>
+                <dt className={styles.statLabel}>{t.label}</dt>
+                <dd className={`${styles.statValue} ${t.danger ? styles.deadLetter : ''}`}>{t.value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className={styles.controls}>
+            <label className={styles.modeLabel}>
+              <span className={styles.modeLabelText}>Failure mode</span>
+              <select
+                className={styles.select}
+                value={mode}
+                disabled={status.down || pending}
+                onChange={(e) => setMode(e.target.value as ZendeskFailureMode)}
+              >
+                {FAILURE_MODES.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              className={`${styles.button} ${status.down ? styles.restore : styles.simulate}`}
+              onClick={onToggle}
+              disabled={pending}
+            >
+              {pending ? 'Updating…' : status.down ? 'Restore Zendesk' : 'Simulate outage'}
+            </button>
+
+            <span className={styles.replayWrap}>
+              <button
+                className={`${styles.button} ${styles.replay}`}
+                onClick={onReplay}
+                disabled={pending || status.deadLetterDepth === 0}
+                aria-describedby={status.deadLetterDepth === 0 ? 'replay-hint' : undefined}
+              >
+                {pending
+                  ? 'Working…'
+                  : status.deadLetterDepth > 0
+                    ? `Replay ${status.deadLetterDepth} dead-letter${status.deadLetterDepth === 1 ? '' : 's'}`
+                    : 'Replay dead-letters'}
+              </button>
+              {status.deadLetterDepth === 0 && (
+                <span id="replay-hint" role="tooltip" className={styles.tooltip}>
+                  No dead-lettered escalations to replay
+                </span>
+              )}
+            </span>
+
+            <button className={styles.refresh} onClick={load} disabled={pending}>↺ Refresh</button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

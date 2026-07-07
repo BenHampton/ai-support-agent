@@ -16,22 +16,14 @@
   color: var(--text-muted);
 }
 
-.card {
-  max-width: 520px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 18px 20px;
-}
-
-.cardHead {
+.sectionHead {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
-.cardTitle {
+.sectionTitle {
   font-size: 15px;
   font-weight: 700;
   color: var(--text-bright);
@@ -58,35 +50,43 @@
   background: var(--decision-escalate-soft);
 }
 
-.meta {
-  margin: 0 0 18px;
-  border-top: 1px solid var(--border-subtle);
+/* full-width responsive grid of stat tiles — fills the screen instead of a narrow list */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0 0 20px;
 }
 
-.metaRow {
+.stat {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-subtle);
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
 }
 
-.metaKey {
-  font-size: 12px;
+.statLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-muted);
 }
 
-.metaVal {
+.statValue {
   margin: 0;
-  font-size: 13px;
+  font-size: 20px;
+  font-weight: 700;
   font-family: monospace;
-  color: var(--text);
+  color: var(--text-bright);
 }
 
 /* dead-letter count is a failure signal — highlight when non-zero */
 .deadLetter {
   color: var(--danger-text);
-  font-weight: 700;
 }
 
 .controls {
@@ -154,6 +154,39 @@
   color: var(--decision-route);
   background: var(--decision-route-soft);
   border-color: var(--decision-route);
+}
+
+/* wraps the Replay button so the "why disabled" tooltip works even when the button is disabled
+   (browsers suppress hover on disabled controls; the wrapper catches it) */
+.replayWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* custom tooltip — appears instantly on hover, unlike the native title attribute's ~1s delay */
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: var(--bg-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 5px 9px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease; /* hide: quick fade, no delay */
+  z-index: 20;
+}
+
+/* show only after a brief, deliberate hover (~300ms) — long enough to not flicker on pass-through,
+   short enough that the cursor is still there to read it. Hide stays immediate (delay only on show). */
+.replayWrap:hover .tooltip {
+  opacity: 1;
+  transition-delay: 0.3s;
 }
 
 .refresh {
