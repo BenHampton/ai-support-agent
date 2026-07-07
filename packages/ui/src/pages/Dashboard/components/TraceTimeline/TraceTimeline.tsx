@@ -1,0 +1,91 @@
+import type { DecisionTrace } from '@shared/types'
+import { AppBadge } from '@components/AppBadge/AppBadge'
+import styles from './TraceTimeline.module.css'
+
+type Props = {
+  traces: DecisionTrace[]
+}
+
+const confidenceLevel = (score: number): 'confHigh' | 'confMed' | 'confLow' =>
+  score >= 0.7 ? 'confHigh' : score >= 0.4 ? 'confMed' : 'confLow'
+
+// surface a rule's computed refund verdict as a structured chip, not just buried in the reason prose
+const eligibleVerdict = (metadata?: Record<string, unknown>): 'ELIGIBLE' | 'NOT ELIGIBLE' | null =>
+  typeof metadata?.eligible === 'boolean' ? (metadata.eligible ? 'ELIGIBLE' : 'NOT ELIGIBLE') : null
+
+export const TraceTimeline = ({ traces }: Props): JSX.Element => {
+  if (!traces.length) {
+    return <div className={`${styles.container} ${styles.emptyText}`}>No traces found</div>
+  }
+
+  return (
+    <div className={styles.container}>
+      {traces.map((trace) => (
+        <div key={trace.messageId} className={styles.traceCard}>
+          <div className={styles.traceHeader}>
+            <AppBadge tone={trace.decision}>{trace.decision}</AppBadge>
+            <span className={styles.headerTime}>
+              {new Date(trace.timestamp).toLocaleTimeString()} · {trace.latencyMs}ms
+            </span>
+            {trace.zendeskTicketId && (
+              <span className={styles.headerTicket}>
+                {trace.zendeskTicketId}
+              </span>
+            )}
+            <span className={styles.headerContext}>
+              {trace.customerContext.tier.toUpperCase()} · {trace.customerContext.region.toUpperCase()}
+            </span>
+          </div>
+
+          <div className={styles.body}>
+            <div className={styles.section}>
+              <div className={styles.sectionLabel}>Knowledge</div>
+              {trace.knowledgeMatches.map((m) => (
+                <div key={m.kbMatchId} className={styles.matchRow}>
+                  <span className={styles.kbMatch}>
+                    {m.kbId}
+                    <span className={styles.kbSuffix}>#{m.kbMatchId.split('#')[1] ?? ''}</span>
+                  </span>
+                  <AppBadge tone={confidenceLevel(m.score)} size="sm" uppercase={false}>
+                    {(m.score * 100).toFixed(0)}%
+                  </AppBadge>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.section}>
+              <div className={styles.sectionLabel}>Rules</div>
+              {trace.rulesEvaluated.filter((r) => r.fired).map((r) => {
+                const verdict = eligibleVerdict(r.metadata)
+                return (
+                  <div key={r.rule} className={styles.ruleRow}>
+                    <div className={`${styles.dot} ${styles.dotFired}`} />
+                    <div className={styles.ruleBody}>
+                      <span className={`${styles.ruleName} ${styles.ruleNameFired}`}>{r.rule}</span>
+                      {r.reason && <span className={styles.ruleReason}>{r.reason}</span>}
+                      {verdict && (
+                        <AppBadge
+                          tone={verdict === 'ELIGIBLE' ? 'answer' : 'escalate'}
+                          size="sm"
+                          className={styles.verdictPos}
+                        >
+                          {verdict}
+                        </AppBadge>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+              {trace.rulesEvaluated.filter((r) => !r.fired).map((r) => (
+                <div key={r.rule} className={styles.ruleRow}>
+                  <div className={`${styles.dot} ${styles.dotInactive}`} />
+                  <span className={styles.ruleName}>{r.rule}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}

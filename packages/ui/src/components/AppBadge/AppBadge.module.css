@@ -1,0 +1,118 @@
+/* Plain badge primitive. Tone = color family (vars.css tokens); size/shape/uppercase are variants that
+   cover the small differences between the app's existing badges. */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+/* sizes */
+.sm {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+}
+
+.md {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+}
+
+.lg {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+}
+
+/* shape */
+.pill {
+  border-radius: 99px;
+}
+
+.rounded {
+  border-radius: 6px;
+}
+
+/* tones — color + soft background from vars.css */
+.answer {
+  color: var(--decision-answer);
+  background: var(--decision-answer-soft);
+}
+
+.escalate {
+  color: var(--decision-escalate);
+  background: var(--decision-escalate-soft);
+}
+
+.route {
+  color: var(--decision-route);
+  background: var(--decision-route-soft);
+}
+
+.urgent {
+  color: var(--priority-urgent);
+  background: var(--priority-urgent-soft);
+}
+
+.high {
+  color: var(--priority-high);
+  background: var(--priority-high-soft);
+}
+
+.normal {
+  color: var(--priority-normal);
+  background: var(--priority-normal-soft);
+}
+
+.low {
+  color: var(--priority-low);
+  background: var(--priority-low-soft);
+}
+
+.consumer {
+  color: var(--tier-consumer);
+  background: var(--tier-consumer-soft);
+}
+
+.smb {
+  color: var(--tier-smb);
+  background: var(--tier-smb-soft);
+}
+
+.enterprise {
+  color: var(--tier-enterprise);
+  background: var(--tier-enterprise-soft);
+}
+
+.vip {
+  color: var(--tier-vip);
+  background: var(--tier-vip-soft);
+}
+
+.confHigh {
+  color: var(--conf-high);
+  background: var(--conf-high-soft);
+}
+
+.confMed {
+  color: var(--conf-med);
+  background: var(--conf-med-soft);
+}
+
+.confLow {
+  color: var(--conf-low);
+  background: var(--conf-low-soft);
+}
+
+.neutral {
+  color: var(--text-mono);
+  background: var(--rule-inactive);
+}

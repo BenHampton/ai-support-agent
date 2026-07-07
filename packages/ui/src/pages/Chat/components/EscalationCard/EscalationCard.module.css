@@ -1,0 +1,54 @@
+.card {
+  background: var(--escalation-bg);
+  border: 1px solid var(--escalation-border);
+  border-left: 4px solid var(--decision-escalate);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon {
+  font-size: 16px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--escalation-title);
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.label {
+  color: var(--text-muted);
+  min-width: 60px;
+}
+
+.value {
+  color: var(--text);
+  font-family: monospace;
+}
+
+.note {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.valueTicket {
+  color: var(--danger-text);
+}
+

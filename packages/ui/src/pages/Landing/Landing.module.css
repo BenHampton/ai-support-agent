@@ -1,0 +1,105 @@
+.landing {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(
+      115deg,
+      transparent 0,
+      transparent 7px,
+      rgba(255, 255, 255, 0.012) 7px,
+      rgba(255, 255, 255, 0.012) 8px
+    ),
+    radial-gradient(ellipse at 50% 40%, var(--bg-panel) 0%, var(--bg-base) 70%);
+  color: var(--text);
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+/* ---- circuit decor (left + right columns) ---- */
+/* flex columns that shrink with the window so the center text never overlaps them; capped at 210px so
+   they don't dominate on wide screens, and hidden entirely below the breakpoint (text-only). */
+.circuitWrap {
+  flex: 1 1 0;
+  max-width: 210px;
+  min-width: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.circuitRight {
+  transform: scaleX(-1);
+}
+
+/* ---- hero (center column) ---- */
+.hero {
+  position: relative;
+  z-index: 1;
+  flex: 3 1 0;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 24px 60px;
+}
+
+.solidTitle {
+  font-size: clamp(42px, 7vw, 82px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin: 0;
+  white-space: nowrap;
+  color: var(--text-bright);
+  text-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+}
+
+.outlineTitle {
+  font-family: 'Saira', sans-serif;
+  font-size: clamp(26px, 4.4vw, 50px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  margin: 8px 0 0;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--text-bright);
+  text-shadow: 0 0 26px rgba(99, 102, 241, 0.35);
+}
+
+.lede {
+  max-width: 620px;
+  margin: 30px 0 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.lede + .lede {
+  margin-top: 16px;
+}
+
+.ledeNote {
+  max-width: 620px;
+  margin: 18px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.cta {
+  margin-top: 40px;
+}
+
+@media (max-width: 720px) {
+  .circuitWrap {
+    display: none;
+  }
+}

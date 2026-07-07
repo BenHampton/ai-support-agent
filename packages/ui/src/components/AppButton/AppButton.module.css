@@ -1,0 +1,88 @@
+/* Plain button primitive. Each variant fully describes its look; tokens from vars.css. Focus rings come
+   from the global :focus-visible rule. */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* filled accent — the primary action (Chat send) */
+.primary {
+  background: var(--accent-strong);
+  color: #fff;
+  font-size: 14px;
+  padding: 8px 16px;
+  transition: background 0.15s;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+/* neutral secondary (Refresh) */
+.subtle {
+  background: var(--bg-subtle);
+  border-color: var(--border);
+  color: var(--text-mono);
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+/* semantic soft-filled with a colored border (Admin actions) */
+.answer {
+  background: var(--decision-answer-soft);
+  border-color: var(--decision-answer);
+  color: var(--decision-answer);
+  font-size: 13px;
+  padding: 7px 14px;
+}
+
+.escalate {
+  background: var(--decision-escalate-soft);
+  border-color: var(--decision-escalate);
+  color: var(--decision-escalate);
+  font-size: 13px;
+  padding: 7px 14px;
+}
+
+.route {
+  background: var(--decision-route-soft);
+  border-color: var(--decision-route);
+  color: var(--decision-route);
+  font-size: 13px;
+  padding: 7px 14px;
+}
+
+/* outline accent pill (Landing CTA) */
+.cta {
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  border-radius: 99px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 12px 30px;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+
+.cta:hover {
+  background: var(--accent);
+  color: var(--bg-base);
+}
+
+.cta:active {
+  transform: translateY(1px);
+}

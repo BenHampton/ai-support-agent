@@ -1,0 +1,14 @@
+/* wrapper span so the tooltip fires on disabled children; inline-flex keeps the child's layout intact */
+.wrap {
+  display: inline-flex;
+}
+
+/* match the app's previous hand-rolled tooltip look; tokens from vars.css */
+.tooltip {
+  background-color: var(--bg-panel) !important;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 5px 9px;
+}
