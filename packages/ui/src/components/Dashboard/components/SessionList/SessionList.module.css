@@ -4,6 +4,15 @@
   padding: 24px;
 }
 
+.intro {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  max-width: 720px;
+  margin: 0 auto 16px;
+  text-align: center;
+}
+
 .headerRow {
   display: flex;
   align-items: center;

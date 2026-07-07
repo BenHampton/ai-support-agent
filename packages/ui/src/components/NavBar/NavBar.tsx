@@ -4,7 +4,7 @@ import styles from './NavBar.module.css'
 const LINKS: { to: string; label: string; end?: boolean }[] = [
   { to: '/', label: 'Home', end: true },
   { to: '/chat', label: 'Chat' },
-  { to: '/dashboard', label: 'Dashboard' },
+  { to: '/dashboard', label: 'Logs' },
   { to: '/tickets', label: 'Tickets' },
   { to: '/admin', label: 'Admin' }
 ]

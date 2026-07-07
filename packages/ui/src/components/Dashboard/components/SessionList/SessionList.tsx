@@ -47,6 +47,10 @@ export const SessionList = (): JSX.Element => {
 
   return (
     <div className={styles.container}>
+      <p className={styles.intro}>
+        A decision trace for every request — expand a session to see how each message was answered,
+        routed, or escalated.
+      </p>
       <div className={styles.headerRow}>
         <div className={styles.header}>Sessions</div>
         <button className={styles.refresh} onClick={load}>↺ Refresh</button>

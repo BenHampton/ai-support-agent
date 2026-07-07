@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { fetchZendeskStatus, setZendeskDown, replayDeadLetters, type ZendeskAdminStatus, type ZendeskFailureMode } from '../../api'
+import { AppSelectOptions } from '../AppSelectOptions/AppSelectOptions'
 import styles from './Admin.module.css'
 
 // how the simulated Zendesk outage fails — mirrors the backend ZendeskFailureMode
@@ -9,11 +10,17 @@ export const Admin = (): JSX.Element => {
   const [status, setStatus] = useState<ZendeskAdminStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+  // separate busy flags so each button shows its own busy label — clicking the toggle must not rewrite the
+  // Replay button's text (and vice versa). `busy` still disables everything during any in-flight mutation.
+  const [toggling, setToggling] = useState(false)
+  const [replaying, setReplaying] = useState(false)
+  const busy = toggling || replaying
   const [mode, setMode] = useState<ZendeskFailureMode>('timeout')
 
+  // background refresh (toggle / replay / Refresh button) — deliberately does NOT touch `loading`, so the
+  // stats + controls stay mounted and update in place instead of unmounting into the "Loading…" state and
+  // flickering. The full-screen loading state is only for the initial mount (below).
   const load = () => {
-    setLoading(true)
     setError(null)
     fetchZendeskStatus()
       .then((s) => {
@@ -21,7 +28,6 @@ export const Admin = (): JSX.Element => {
         setMode(s.mode)
       })
       .catch(() => setError('Could not load Zendesk status — is the API running?'))
-      .finally(() => setLoading(false))
   }
 
   // load once on mount; load() is also wired to the Refresh button and re-run after a toggle
@@ -37,27 +43,41 @@ export const Admin = (): JSX.Element => {
 
   const onToggle = () => {
     if (!status) return
-    setPending(true)
+    setToggling(true)
     setError(null)
     setZendeskDown(!status.down, mode)
       .then(() => load())
       .catch(() => setError('Could not update Zendesk status'))
-      .finally(() => setPending(false))
+      .finally(() => setToggling(false))
   }
 
   const onReplay = () => {
-    setPending(true)
+    setReplaying(true)
     setError(null)
     replayDeadLetters()
       .then(() => load())
       .catch(() => setError('Could not replay dead-letters'))
-      .finally(() => setPending(false))
+      .finally(() => setReplaying(false))
   }
 
-  const tiles = status
+  const tiles: { label: string; value: ReactNode; danger?: boolean }[] = status
     ? [
         { label: 'Status', value: status.down ? 'Down' : 'Up' },
-        { label: 'Failure mode', value: status.down ? status.mode : '—' },
+        {
+          // the failure-mode picker lives inside its own tile; disabled while an outage is active or a
+          // request is in flight (you can't change how it fails mid-outage)
+          label: 'Failure mode',
+          value: (
+            <AppSelectOptions
+              value={mode}
+              onChange={(v) => setMode(v as ZendeskFailureMode)}
+              options={FAILURE_MODES.map((m) => ({ value: m, label: m.charAt(0).toUpperCase() + m.slice(1) }))}
+              disabled={status.down || busy}
+              fullWidth
+              ariaLabel="Zendesk failure mode"
+            />
+          )
+        },
         { label: 'Queued escalations', value: String(status.queueDepth) },
         { label: 'Dead-lettered', value: String(status.deadLetterDepth), danger: status.deadLetterDepth > 0 }
       ]
@@ -94,36 +114,22 @@ export const Admin = (): JSX.Element => {
           </dl>
 
           <div className={styles.controls}>
-            <label className={styles.modeLabel}>
-              <span className={styles.modeLabelText}>Failure mode</span>
-              <select
-                className={styles.select}
-                value={mode}
-                disabled={status.down || pending}
-                onChange={(e) => setMode(e.target.value as ZendeskFailureMode)}
-              >
-                {FAILURE_MODES.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </label>
-
             <button
               className={`${styles.button} ${status.down ? styles.restore : styles.simulate}`}
               onClick={onToggle}
-              disabled={pending}
+              disabled={busy}
             >
-              {pending ? 'Updating…' : status.down ? 'Restore Zendesk' : 'Simulate outage'}
+              {toggling ? 'Updating…' : status.down ? 'Restore Zendesk' : 'Simulate outage'}
             </button>
 
             <span className={styles.replayWrap}>
               <button
                 className={`${styles.button} ${styles.replay}`}
                 onClick={onReplay}
-                disabled={pending || status.deadLetterDepth === 0}
+                disabled={busy || status.deadLetterDepth === 0}
                 aria-describedby={status.deadLetterDepth === 0 ? 'replay-hint' : undefined}
               >
-                {pending
+                {replaying
                   ? 'Working…'
                   : status.deadLetterDepth > 0
                     ? `Replay ${status.deadLetterDepth} dead-letter${status.deadLetterDepth === 1 ? '' : 's'}`
@@ -136,7 +142,7 @@ export const Admin = (): JSX.Element => {
               )}
             </span>
 
-            <button className={styles.refresh} onClick={load} disabled={pending}>↺ Refresh</button>
+            <button className={styles.refresh} onClick={load} disabled={busy}>↺ Refresh</button>
           </div>
         </>
       )}
