@@ -53,7 +53,7 @@ ai-support-agent/
     │       │   ├── Tickets/       # escalated-ticket view
     │       │   └── Landing/       # landing page
     │       ├── components/        # reusable primitives + shell
-    │       │   ├── App*/          # AppBadge, AppButton, AppTooltip, AppSelectOptions
+    │       │   ├── App*/          # AppBadge, AppButton, AppTooltip, AppSelectOptions, AppAlert
     │       │   └── NavBar/        # top-level navigation
     │       └── App.tsx
     └── api/

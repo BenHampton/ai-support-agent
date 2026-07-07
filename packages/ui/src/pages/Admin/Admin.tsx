@@ -4,6 +4,7 @@ import { AppSelectOptions } from '@components/AppSelectOptions/AppSelectOptions'
 import { AppBadge } from '@components/AppBadge/AppBadge'
 import { AppButton } from '@components/AppButton/AppButton'
 import { AppTooltip } from '@components/AppTooltip/AppTooltip'
+import { AppAlert } from '@components/AppAlert/AppAlert'
 import styles from './Admin.module.css'
 
 // how the simulated Zendesk outage fails — mirrors the backend ZendeskFailureMode
@@ -103,7 +104,7 @@ export const Admin = (): JSX.Element => {
       </div>
 
       {loading && <div className={styles.muted}>Loading status…</div>}
-      {error && <div className={styles.error} role="alert">{error}</div>}
+      {error && <AppAlert severity="error" className={styles.errorAlert}>{error}</AppAlert>}
 
       {status && !loading && (
         <>

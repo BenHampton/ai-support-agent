@@ -92,12 +92,6 @@
   padding: 8px 0;
 }
 
-.error {
-  color: var(--danger-text);
-  background: var(--decision-escalate-bg);
-  border: 1px solid var(--escalation-border);
-  border-radius: 6px;
-  font-size: 13px;
-  padding: 8px 10px;
+.errorAlert {
   margin-bottom: 14px;
 }
