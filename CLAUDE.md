@@ -39,6 +39,7 @@ ai-support-agent/
 │   ├── customers.json             # mock Salesforce customers
 │   ├── tickets.json               # ticket-store seed ([] by default)
 │   ├── escalation-queue.json      # durable escalation queue (write-ahead, survives restart)
+│   ├── escalation-dlq.json        # dead-letter queue — escalations that exhausted delivery
 │   └── kb/                        # knowledge-base .md docs
 └── packages/
     ├── shared/
@@ -68,9 +69,9 @@ ai-support-agent/
             │   ├── orchestration.ts   # runOrchestration() — full request flow
             │   └── refund-eligibility.ts # deterministic refund verdict formatting
             ├── broker/                # escalation durability as a message broker
-            │   ├── queue.ts           # durable queue — enqueue/ack/nack/deadLetter/listReady (atomic writes)
-            │   ├── publisher.ts       # publish() — produces a durable escalation record before the Zendesk call
-            │   └── consumer.ts        # startConsumer() — drains the queue into Zendesk on recovery
+            │   ├── queue.ts           # durable queue + DLQ store (enqueue/ack/nack/deadLetter, atomic writes)
+            │   ├── publisher.ts       # publish() new escalations + replay() dead-letters back onto the queue
+            │   └── consumer.ts        # startConsumer() — sole deliverer; drains to Zendesk async, dead-letters
             ├── integrations/
             │   ├── salesforce.ts      # mock CRM lookup (swap for real API here)
             │   ├── zendesk.ts         # mock ticketing + resilience (timeout/retry/breaker/idempotency)

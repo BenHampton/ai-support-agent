@@ -54,7 +54,7 @@ export const fetchTickets = async (): Promise<ZendeskTicket[]> => {
 }
 
 export type ZendeskFailureMode = 'timeout' | '503' | 'hang'
-export type ZendeskAdminStatus = { down: boolean; mode: ZendeskFailureMode; queueDepth: number }
+export type ZendeskAdminStatus = { down: boolean; mode: ZendeskFailureMode; queueDepth: number; deadLetterDepth: number }
 
 export const fetchZendeskStatus = async (): Promise<ZendeskAdminStatus> => {
   const res = await fetch('/api/admin/zendesk/status')
@@ -71,6 +71,12 @@ export const setZendeskDown = async (
     body: JSON.stringify({ down, mode })
   })
   return (await res.json() as { data: { down: boolean; mode: ZendeskFailureMode } }).data
+}
+
+// operator redrive: move all dead-lettered escalations back onto the queue for another delivery attempt
+export const replayDeadLetters = async (): Promise<{ replayed: number }> => {
+  const res = await fetch('/api/admin/zendesk/dead-letters/replay', { method: 'POST' })
+  return (await res.json() as { data: { replayed: number } }).data
 }
 
 export const fetchSessions = async () => {

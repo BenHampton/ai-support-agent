@@ -86,9 +86,17 @@ timeout → retry → circuit breaker → queue → consumer → dead-letter
   in memory, seeded from disk at startup, so queued escalations survive a restart.
 - **Consumer** (`broker/consumer.ts`) — a background interval (`startConsumer`, single-flight guarded) is
   the sole deliverer: it drains each `ready` record, creates the Zendesk ticket with the record's stored
-  key, `ack`s it and backfills the real `ZD-` id onto the stored session trace, or `deadLetter`s it after
-  bounded attempts. A healthy escalation is delivered on the next tick; during an outage the record just
-  stays `ready` until Zendesk recovers — an outage is a longer wait, not a separate code path.
+  key, `ack`s it and backfills the real `ZD-` id onto the stored session trace. A healthy escalation is
+  delivered on the next tick; during an outage the record just stays `ready` until Zendesk recovers — an
+  outage is a longer wait, not a separate code path.
+- **Dead-letter queue** (`broker/queue.ts` → `data/escalation-dlq.json`) — after
+  `MAX_ATTEMPTS` failed deliveries the consumer **moves** the record out of the main queue into a
+  physically separate DLQ (a permanently-failing escalation shouldn't retry forever or hide among live
+  ones). Its depth is surfaced on `GET /admin/zendesk/status` and the Admin card, and the records are
+  inspectable via `GET /admin/zendesk/dead-letters` — a dead-lettered escalation is a customer owed a
+  human handoff, so it's made loud, not silent. Once the cause is fixed, an operator **redrives** them
+  (`POST …/dead-letters/replay` or the Admin **Replay** button), moving them back onto the queue with a
+  fresh attempt budget; redrive is manual, never automatic.
 - **Resilient client** (`integrations/zendesk.ts`) — the Zendesk write is wrapped in a per-call timeout,
   bounded retry with exponential backoff + jitter, and a circuit breaker that trips open after N
   consecutive failures so a sustained outage fails fast instead of paying the full retry budget.
@@ -103,8 +111,12 @@ it, controlled from the **Admin** view (`packages/ui/src/components/Admin/`) or 
 - `POST /admin/zendesk/down` — body `{ down: boolean, mode?: 'timeout' | '503' | 'hang' }`; flips the
   simulated outage. `mode` selects how it fails (fast-fail timeout, 503, or hang until the client
   timeout fires).
-- `GET /admin/zendesk/status` — returns `{ down, mode, queueDepth }`, where `queueDepth` is the number
-  of escalations currently queued (`ready`) for reconciliation.
+- `GET /admin/zendesk/status` — returns `{ down, mode, queueDepth, deadLetterDepth }`: escalations
+  currently queued (`ready`) for delivery, and how many have dead-lettered.
+- `GET /admin/zendesk/dead-letters` — lists the dead-lettered escalations for inspection.
+- `POST /admin/zendesk/dead-letters/replay` (or `…/:key/replay`) — operator **redrive**: move dead-letters
+  back onto the queue with a fresh attempt budget, once the cause is fixed. Manual by design (a timer/auto
+  drain would just re-run the retry the DLQ exists to stop).
 
 ---
 
@@ -128,6 +140,7 @@ it, controlled from the **Admin** view (`packages/ui/src/components/Admin/`) or 
 │   ├── customers.json           # mock Salesforce customer records
 │   ├── tickets.json             # seed for the in-memory ticket store ([] by default)
 │   ├── escalation-queue.json    # durable escalation queue (write-ahead, survives restart)
+│   ├── escalation-dlq.json      # dead-letter queue — escalations that exhausted delivery
 │   └── kb/                      # 10 knowledge-base docs as .md files with frontmatter
 ├── packages/shared/types.ts     # Shared types (DecisionTrace, Customer, etc.)
 ├── packages/api/src/
@@ -137,10 +150,10 @@ it, controlled from the **Admin** view (`packages/ui/src/components/Admin/`) or 
 │   │   ├── ollama.ts            # embed() and chat() — Ollama API wrappers
 │   │   ├── knowledge.ts         # Hybrid chunking, embedding, cosine search, chunk store
 │   │   └── orchestration.ts     # runOrchestration() — full request flow
-│   ├── broker/                  # escalation durability as a message broker (publisher/queue/consumer)
-│   │   ├── queue.ts             # Durable queue — enqueue/ack/nack/deadLetter/listReady (atomic writes)
-│   │   ├── publisher.ts         # publish() — produces a durable escalation record before the Zendesk call
-│   │   └── consumer.ts          # startConsumer() — drains the queue into Zendesk once it recovers
+│   ├── broker/                  # escalation durability as a message broker
+│   │   ├── queue.ts             # durable queue + DLQ store (enqueue/ack/nack/deadLetter, atomic writes)
+│   │   ├── publisher.ts         # publish() new escalations + replay() dead-letters back onto the queue
+│   │   └── consumer.ts          # startConsumer() — sole deliverer; drains to Zendesk async, dead-letters
 │   ├── rules/
 │   │   ├── engine.ts            # YAML-driven rules engine — runRulesEngine()
 │   │   └── rules.yaml           # 6 rules, keywords, thresholds

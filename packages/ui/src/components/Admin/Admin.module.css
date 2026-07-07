@@ -83,6 +83,12 @@
   color: var(--text);
 }
 
+/* dead-letter count is a failure signal — highlight when non-zero */
+.deadLetter {
+  color: var(--danger-text);
+  font-weight: 700;
+}
+
 .controls {
   display: flex;
   align-items: flex-end;
@@ -142,6 +148,12 @@
   color: var(--decision-answer);
   background: var(--decision-answer-soft);
   border-color: var(--decision-answer);
+}
+
+.replay {
+  color: var(--decision-route);
+  background: var(--decision-route-soft);
+  border-color: var(--decision-route);
 }
 
 .refresh {

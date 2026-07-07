@@ -10,6 +10,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['packages/**/*.test.ts'],
+    // isolate each test file's DATA_DIR to a temp copy of the fixtures — the broker stores persist to
+    // disk, so parallel files must not share data/ (see vitest.setup.ts)
+    setupFiles: ['./vitest.setup.ts'],
     // let the eval harness's afterAll scorecard print instead of being buffered
     disableConsoleIntercept: true
   }

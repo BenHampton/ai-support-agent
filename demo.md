@@ -143,6 +143,14 @@ trace — visible in the Dashboard/Trace panel.
 > **Durability check:** restart the API between steps 3 and 4. The queued escalation is still in
 > `data/escalation-queue.json` and reconciles after recovery — nothing is lost to a process restart.
 
+> **Dead-letter + replay:** if delivery keeps failing past `MAX_ATTEMPTS`, the consumer *moves* the record
+> out of the main queue into a separate dead-letter queue (`data/escalation-dlq.json`). It stops retrying
+> and shows as **Dead-lettered** on the Admin card (`GET /admin/zendesk/dead-letters` to inspect) — a
+> customer owed a human handoff is made visible, never silently dropped. Once you **Restore Zendesk**,
+> click **Replay** on the Admin card (or `curl -X POST localhost:3001/admin/zendesk/dead-letters/replay`)
+> to redrive it back onto the queue with a fresh attempt budget — the consumer then delivers it and
+> backfills the `ZD-…` id. Redrive is a deliberate operator action, not an automatic drain.
+
 ---
 
 ## Reading the trace

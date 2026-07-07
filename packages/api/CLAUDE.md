@@ -12,11 +12,11 @@ Backend-specific guidance. Auto-loaded when working under `packages/api/`. See t
 ## Architecture Principles
 
 - **Modular by layer** — each service (`ollama`, `knowledge`, `rules`, `salesforce`, `zendesk`) is independently importable and callable without standing up the full server. The escalation-durability subsystem is the one cohesive cross-layer module: `broker/` (publisher/queue/consumer)
-- **Broker for durability** — escalations are modelled as a message broker under `broker/`: a `publisher` produces a durable record, the `queue` holds it (passive persistence), and a background `consumer` drains it into Zendesk. Dependencies point downward — publisher/consumer → queue; consumer → `integrations/zendesk` + `store/sessions`; the queue stays a passive leaf
+- **Broker for durability** — escalations are modelled as a message broker under `broker/`, three files for three concepts: `queue.ts` is the passive storage for both the main queue and the DLQ (physically separate files); `publisher.ts` produces onto the queue — `publish()` new escalations and `replay()` dead-letters back (operator-triggered via `POST /admin/zendesk/dead-letters/replay`, never auto-drained); `consumer.ts` is the sole deliverer — drains the queue into Zendesk async and moves exhausted records to the DLQ. Dependencies point downward: publisher + consumer → `queue.ts`; consumer → `integrations/zendesk` + `store/sessions`; `queue.ts` stays a passive leaf
 - **Rules before LLM** — deterministic rules always evaluate first; the LLM is only reached on an `ANSWER` decision
 - **Trace everything** — every orchestration step emits to `DecisionTrace`, regardless of decision outcome; no silent paths
 - **Mock at the boundary** — `integrations/salesforce.ts` and `integrations/zendesk.ts` are the integration swap points; the file-based `broker/queue.ts` is the durability swap point (a DB table or managed queue in production). All business logic above them is production-ready
-- **Shared mutable state is deliberate and bounded** — the session store is append-only; rules and knowledge are read-only after startup. The only intentionally mutable module state is the durable escalation queue (`broker/queue.ts`, with `enqueue`/`ack`/`nack`/`deadLetter`) and the outage feature flag (`store/feature-flags.ts`, a runtime toggle)
+- **Shared mutable state is deliberate and bounded** — the session store is append-only; rules and knowledge are read-only after startup. The only intentionally mutable module state is the durable escalation queue + DLQ (`broker/queue.ts`) and the outage feature flag (`store/feature-flags.ts`, a runtime toggle)
 
 ## Orchestration (per chat message)
 

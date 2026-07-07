@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchZendeskStatus, setZendeskDown, type ZendeskAdminStatus, type ZendeskFailureMode } from '../../api'
+import { fetchZendeskStatus, setZendeskDown, replayDeadLetters, type ZendeskAdminStatus, type ZendeskFailureMode } from '../../api'
 import styles from './Admin.module.css'
 
 // how the simulated Zendesk outage fails — mirrors the backend ZendeskFailureMode
@@ -45,6 +45,15 @@ export const Admin = (): JSX.Element => {
       .finally(() => setPending(false))
   }
 
+  const onReplay = () => {
+    setPending(true)
+    setError(null)
+    replayDeadLetters()
+      .then(() => load())
+      .catch(() => setError('Could not replay dead-letters'))
+      .finally(() => setPending(false))
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>Admin</div>
@@ -80,6 +89,12 @@ export const Admin = (): JSX.Element => {
                 <dt className={styles.metaKey}>Queued escalations</dt>
                 <dd className={styles.metaVal}>{status.queueDepth}</dd>
               </div>
+              <div className={styles.metaRow}>
+                <dt className={styles.metaKey}>Dead-lettered</dt>
+                <dd className={`${styles.metaVal} ${status.deadLetterDepth > 0 ? styles.deadLetter : ''}`}>
+                  {status.deadLetterDepth}
+                </dd>
+              </div>
             </dl>
 
             <div className={styles.controls}>
@@ -104,6 +119,12 @@ export const Admin = (): JSX.Element => {
               >
                 {pending ? 'Updating…' : status.down ? 'Restore Zendesk' : 'Simulate outage'}
               </button>
+
+              {status.deadLetterDepth > 0 && (
+                <button className={`${styles.button} ${styles.replay}`} onClick={onReplay} disabled={pending}>
+                  {pending ? 'Working…' : `Replay ${status.deadLetterDepth} dead-letter${status.deadLetterDepth === 1 ? '' : 's'}`}
+                </button>
+              )}
 
               <button className={styles.refresh} onClick={load} disabled={pending}>↺ Refresh</button>
             </div>

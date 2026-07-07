@@ -1,6 +1,6 @@
 import { CONSUMER_INTERVAL_MS, ZENDESK_MAX_RETRIES } from '../config.ts'
 import { createTicket, ZendeskUnavailableError } from '../integrations/zendesk.ts'
-import { listReady, ack, nack, deadLetter } from './queue.ts'
+import { listReady, ack, nack, remove, deadLetter } from './queue.ts'
 import { getSession } from '../store/sessions.ts'
 
 // Consumer: drains the escalation queue into Zendesk once it recovers. Re-submits each ready record with
@@ -31,8 +31,14 @@ export const consumeOnce = async (): Promise<void> => {
         backfillTrace(record.sessionId, record.messageId, ticket.id)
       } catch (err) {
         if (!(err instanceof ZendeskUnavailableError)) throw err // real bug — surface it
-        if (record.attempts + 1 >= MAX_ATTEMPTS) deadLetter(record.idempotencyKey, err.message)
-        else nack(record.idempotencyKey, err.message)
+        if (record.attempts + 1 >= MAX_ATTEMPTS) {
+          // exhausted — MOVE to the DLQ. DLQ-first (idempotent append) then evict, so a crash between
+          // the two writes can't lose the record or leave it retrying forever.
+          deadLetter({ ...record, status: 'dead-letter', lastError: err.message })
+          remove(record.idempotencyKey)
+        } else {
+          nack(record.idempotencyKey, err.message)
+        }
       }
     }
   } finally {
