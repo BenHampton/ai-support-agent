@@ -125,7 +125,7 @@ export const ChatWindow = ({ customerId, sessionId, onTrace }: Props): JSX.Eleme
           onKeyDown={onKey}
           disabled={loading || !customerId}
         />
-        <AppButton variant="primary" onClick={send} disabled={loading || !customerId} className={styles.sendBtn}>
+        <AppButton variant="primary" onClick={send} disabled={loading || !customerId}>
           {loading ? '…' : 'Send'}
         </AppButton>
       </div>

@@ -86,10 +86,6 @@
   font-family: inherit;
 }
 
-/* match the textarea's corner radius; AppButton (primary) provides the rest */
-.sendBtn {
-  border-radius: 8px;
-}
 
 .empty {
   flex: 1;

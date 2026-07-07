@@ -1,16 +1,21 @@
-/* Plain button primitive. Each variant fully describes its look; tokens from vars.css. Focus rings come
-   from the global :focus-visible rule. */
+/* One consistent button look — outline pill that fills with its color on hover (modeled on the hero
+   "ENTER CONSOLE" button). Variants only set the color; size scales it. Focus rings come from the global
+   :focus-visible rule. */
 
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  font-weight: 600;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 99px;
   font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 18px;
   cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
 }
 
 .button:disabled {
@@ -18,71 +23,60 @@
   cursor: not-allowed;
 }
 
-/* filled accent — the primary action (Chat send) */
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* ---- variants: color only; hover fills ---- */
 .primary {
-  background: var(--accent-strong);
-  color: #fff;
-  font-size: 14px;
-  padding: 8px 16px;
-  transition: background 0.15s;
-}
-
-.primary:hover:not(:disabled) {
-  background: var(--accent);
-}
-
-/* neutral secondary (Refresh) */
-.subtle {
-  background: var(--bg-subtle);
-  border-color: var(--border);
-  color: var(--text-mono);
-  font-size: 12px;
-  padding: 6px 12px;
-}
-
-/* semantic soft-filled with a colored border (Admin actions) */
-.answer {
-  background: var(--decision-answer-soft);
-  border-color: var(--decision-answer);
-  color: var(--decision-answer);
-  font-size: 13px;
-  padding: 7px 14px;
-}
-
-.escalate {
-  background: var(--decision-escalate-soft);
-  border-color: var(--decision-escalate);
-  color: var(--decision-escalate);
-  font-size: 13px;
-  padding: 7px 14px;
-}
-
-.route {
-  background: var(--decision-route-soft);
-  border-color: var(--decision-route);
-  color: var(--decision-route);
-  font-size: 13px;
-  padding: 7px 14px;
-}
-
-/* outline accent pill (Landing CTA) */
-.cta {
-  background: transparent;
-  border: 1.5px solid var(--accent);
-  border-radius: 99px;
+  border-color: var(--accent);
   color: var(--accent);
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  padding: 12px 30px;
-  transition: background 0.15s, color 0.15s, transform 0.1s;
 }
-
-.cta:hover {
+.primary:hover:not(:disabled) {
   background: var(--accent);
   color: var(--bg-base);
 }
 
-.cta:active {
-  transform: translateY(1px);
+.escalate {
+  border-color: var(--decision-escalate);
+  color: var(--decision-escalate);
+}
+.escalate:hover:not(:disabled) {
+  background: var(--decision-escalate);
+  color: var(--bg-base);
+}
+
+.answer {
+  border-color: var(--decision-answer);
+  color: var(--decision-answer);
+}
+.answer:hover:not(:disabled) {
+  background: var(--decision-answer);
+  color: var(--bg-base);
+}
+
+.route {
+  border-color: var(--decision-route);
+  color: var(--decision-route);
+}
+.route:hover:not(:disabled) {
+  background: var(--decision-route);
+  color: var(--bg-base);
+}
+
+.subtle {
+  border-color: var(--border);
+  color: var(--text-mono);
+}
+.subtle:hover:not(:disabled) {
+  background: var(--bg-subtle);
+  color: var(--text);
+}
+
+/* ---- size ---- */
+.lg {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 12px 30px;
 }

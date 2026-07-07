@@ -35,7 +35,7 @@ export const Landing = (): JSX.Element => {
           without touching business logic.
         </p>
 
-        <AppButton variant="cta" onClick={() => navigate('/chat')} className={styles.cta}>ENTER CONSOLE</AppButton>
+        <AppButton variant="primary" size="lg" onClick={() => navigate('/chat')} className={styles.cta}>ENTER CONSOLE</AppButton>
       </main>
 
       <div className={`${styles.circuitWrap} ${styles.circuitRight}`}>
