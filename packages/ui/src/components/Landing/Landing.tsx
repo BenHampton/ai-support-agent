@@ -7,10 +7,7 @@ export const Landing = (): JSX.Element => {
 
   return (
     <div className={styles.landing}>
-      <div className={`${styles.circuitWrap} ${styles.circuitLeft}`}>
-        <CircuitDecor />
-      </div>
-      <div className={`${styles.circuitWrap} ${styles.circuitRight}`}>
+      <div className={styles.circuitWrap}>
         <CircuitDecor />
       </div>
 
@@ -36,6 +33,10 @@ export const Landing = (): JSX.Element => {
 
         <button className={styles.cta} onClick={() => navigate('/chat')}>ENTER CONSOLE</button>
       </main>
+
+      <div className={`${styles.circuitWrap} ${styles.circuitRight}`}>
+        <CircuitDecor />
+      </div>
     </div>
   )
 }

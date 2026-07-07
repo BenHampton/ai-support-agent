@@ -15,33 +15,33 @@
     radial-gradient(ellipse at 50% 40%, var(--bg-panel) 0%, var(--bg-base) 70%);
   color: var(--text);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
 }
 
-/* ---- circuit decor ---- */
+/* ---- circuit decor (left + right columns) ---- */
+/* flex columns that shrink with the window so the center text never overlaps them; capped at 210px so
+   they don't dominate on wide screens, and hidden entirely below the breakpoint (text-only). */
 .circuitWrap {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 210px;
+  flex: 1 1 0;
+  max-width: 210px;
+  min-width: 0;
   pointer-events: none;
+  overflow: hidden;
   z-index: 0;
 }
 
-.circuitLeft {
-  left: 0;
-}
-
 .circuitRight {
-  right: 0;
   transform: scaleX(-1);
 }
 
-/* ---- hero ---- */
+/* ---- hero (center column) ---- */
 .hero {
   position: relative;
   z-index: 1;
-  flex: 1;
+  flex: 3 1 0;
+  min-width: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
