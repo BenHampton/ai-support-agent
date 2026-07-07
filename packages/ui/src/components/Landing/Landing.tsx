@@ -16,15 +16,18 @@ export const Landing = (): JSX.Element => {
         <div className={styles.outlineTitle}>SUPPORT AI AGENT</div>
 
         <p className={styles.lede}>
-          Ark Systems Support AI is an AI customer-support agent. It answers from an approved knowledge
-          base, applies deterministic business rules before any model call, personalizes with live
-          customer context, and escalates to a human when the rules require it.
+          Ark Systems is a global, fictional B2B and B2C technology company — building consumer and
+          business laptops, enterprise servers and storage, the ArkCloud platform, and a full line of
+          peripherals — for customers ranging from individual buyers to enterprise and VIP contract
+          accounts.
         </p>
         <p className={styles.lede}>
-          Each message runs one pipeline: retrieval, then a deterministic rules engine that decides whether
-          to answer, route, or escalate — only an “answer” reaches the LLM, with high-stakes calls like
-          refund eligibility computed in code. Every request emits a full decision trace you can replay in
-          the Dashboard.
+          A production-grade support agent built on a deterministic orchestration pipeline: RAG-based
+          retrieval feeds a rules engine that decides whether to answer, route, or escalate. The LLM sits
+          behind a guarded boundary — invoked only for approved answers, with high-stakes logic like refund
+          eligibility computed in code. Customer context flows from CRM/ticketing behind a swappable
+          integration boundary, escalation is policy-enforced, and every request emits a full, replayable
+          decision trace.
         </p>
         <p className={styles.ledeNote}>
           Salesforce and Zendesk are mocked at the integration boundary — swappable for the real APIs
