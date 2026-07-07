@@ -22,5 +22,5 @@
       "@pages/*": ["src/pages/*"]
     }
   },
-  "include": ["src", "../shared", "vite.config.ts"]
+  "include": ["src", "../shared", "vite.config.ts", "vitest.setup.ts"]
 }
