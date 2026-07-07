@@ -56,6 +56,8 @@ build/
 
 /spec.md
 
-# Runtime escalation queue (durable queue written at runtime; not source)
-data/escalation-queue.json
+# Atomic-write scratch file — transient, never commit a half-written queue.
 data/escalation-queue.json.tmp
+# NOTE: data/escalation-queue.json is intentionally TRACKED (not ignored) so the queue state syncs
+# across the solo dev's laptops via commit/pull. Trade-offs accepted: manual sync, possible merge
+# conflicts, no cross-machine dedup. In a real deployment this would be a shared queue (SQS/PubSub), not git.
