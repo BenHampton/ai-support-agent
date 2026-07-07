@@ -1,0 +1,56 @@
+/* MUI Alert restyled to the app's dark theme via slot classes; tokens from vars.css. Rules are scoped with
+   the MUI global class (.MuiAlert-root) so they outrank MUI's own variant styles by specificity — no
+   !important. */
+
+.alert:global(.MuiAlert-root) {
+  align-items: center;
+  border-radius: 6px;
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.alert :global(.MuiAlert-message) {
+  padding: 0;
+}
+
+.alert :global(.MuiAlert-icon) {
+  padding: 0;
+  margin-right: 8px;
+}
+
+/* ---- severities ---- */
+.error:global(.MuiAlert-root) {
+  color: var(--danger-text);
+  background-color: var(--decision-escalate-bg);
+  border-color: var(--escalation-border);
+}
+.error :global(.MuiAlert-icon) {
+  color: var(--danger-text);
+}
+
+.info:global(.MuiAlert-root) {
+  color: var(--text);
+  background-color: var(--bg-panel);
+  border-color: var(--border);
+}
+.info :global(.MuiAlert-icon) {
+  color: var(--accent);
+}
+
+.warning:global(.MuiAlert-root) {
+  color: var(--priority-high);
+  background-color: var(--decision-route-bg);
+  border-color: var(--priority-high);
+}
+.warning :global(.MuiAlert-icon) {
+  color: var(--priority-high);
+}
+
+.success:global(.MuiAlert-root) {
+  color: var(--decision-answer);
+  background-color: var(--decision-answer-bg);
+  border-color: var(--decision-answer);
+}
+.success :global(.MuiAlert-icon) {
+  color: var(--decision-answer);
+}

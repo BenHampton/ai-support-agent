@@ -3,9 +3,10 @@
   display: inline-flex;
 }
 
-/* match the app's previous hand-rolled tooltip look; tokens from vars.css */
-.tooltip {
-  background-color: var(--bg-panel) !important;
+/* match the app's previous hand-rolled tooltip look; tokens from vars.css. Scoped with the MUI global
+   class so we outrank MUI's defaults by specificity (no !important). */
+.tooltip:global(.MuiTooltip-tooltip) {
+  background-color: var(--bg-panel);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 6px;

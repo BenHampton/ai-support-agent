@@ -11,10 +11,12 @@
   transition: background-color 0.12s, border-color 0.12s;
 }
 
-/* remove the standard-variant underline for a clean look (both sizes) */
-.select::before,
-.select::after {
-  border-bottom: none !important;
+/* remove the standard-variant underline for a clean look (both sizes). Scoped with the MUI global class so
+   we outrank MUI's underline rules — including the higher-specificity hover rule — without !important. */
+.select:global(.MuiInputBase-root)::before,
+.select:global(.MuiInputBase-root)::after,
+.select:global(.MuiInputBase-root):hover::before {
+  border-bottom: none;
 }
 
 .select:global(.Mui-disabled) {
@@ -101,8 +103,9 @@
 }
 
 /* ============ portalled menu paper (shared) ============ */
-.menu {
-  background-color: var(--bg-panel) !important;
+.menu:global(.MuiPaper-root) {
+  background-color: var(--bg-panel);
+  background-image: none; /* neutralize MUI's dark-theme elevation overlay */
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-top: 4px;
