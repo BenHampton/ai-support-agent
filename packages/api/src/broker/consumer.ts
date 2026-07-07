@@ -1,10 +1,10 @@
-import { RECONCILER_INTERVAL_MS, ZENDESK_MAX_RETRIES } from '../config.ts'
+import { CONSUMER_INTERVAL_MS, ZENDESK_MAX_RETRIES } from '../config.ts'
 import { createTicket, ZendeskUnavailableError } from '../integrations/zendesk.ts'
-import { listReady, ack, nack, deadLetter } from '../store/escalation-queue.ts'
+import { listReady, ack, nack, deadLetter } from './queue.ts'
 import { getSession } from '../store/sessions.ts'
 
-// Drains the escalation queue into Zendesk once it recovers. Re-submits each ready record with its
-// stored idempotencyKey, so anything that actually landed during the outage is not duplicated, then
+// Consumer: drains the escalation queue into Zendesk once it recovers. Re-submits each ready record with
+// its stored idempotencyKey, so anything that actually landed during the outage is not duplicated, then
 // backfills the real ticket ID onto the stored session trace so the Dashboard/TracePanel show it.
 
 // give up after bounded attempts so a permanently-broken escalation is dead-lettered instead of looping
@@ -16,7 +16,7 @@ const backfillTrace = (sessionId: string, messageId: string, zendeskTicketId: st
   if (trace) trace.zendeskTicketId = zendeskTicketId
 }
 
-export const runReconcilerOnce = async (): Promise<void> => {
+export const consumeOnce = async (): Promise<void> => {
   for (const record of listReady()) {
     try {
       const ticket = await createTicket(record.payload) // stored key → no duplicate ticket
@@ -30,7 +30,7 @@ export const runReconcilerOnce = async (): Promise<void> => {
   }
 }
 
-export const startReconciler = (): NodeJS.Timeout =>
+export const startConsumer = (): NodeJS.Timeout =>
   setInterval(() => {
-    void runReconcilerOnce()
-  }, RECONCILER_INTERVAL_MS)
+    void consumeOnce()
+  }, CONSUMER_INTERVAL_MS)

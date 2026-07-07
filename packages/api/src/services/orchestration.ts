@@ -3,7 +3,8 @@ import { getCustomer } from '../integrations/salesforce.ts'
 import { searchKnowledge, getChunksByIds } from './knowledge.js'
 import { runRulesEngine } from '../rules/engine.ts'
 import { createTicket, ZendeskUnavailableError, type CreateTicketInput } from '../integrations/zendesk.ts'
-import { enqueue, ack, nack } from '../store/escalation-queue.ts'
+import { publish } from '../broker/publisher.ts'
+import { ack, nack } from '../broker/queue.ts'
 import { getActiveIncidents, formatIncidentMessage } from '../integrations/arkcloud-status.ts'
 import { chat, type OllamaChatMessage } from './ollama.js'
 import { formatRefundEligibilityVerdict } from './refund-eligibility.ts'
@@ -141,7 +142,7 @@ export const runOrchestration = async (
   }
 
   if (ruleResult.action === 'escalate') {
-    // stable per-request key — dedupes retries and the reconciler so one escalation = one ticket
+    // stable per-request key — dedupes retries and the consumer so one escalation = one ticket
     const idempotencyKey = messageId
     const payload: CreateTicketInput = {
       idempotencyKey,
@@ -155,10 +156,9 @@ export const runOrchestration = async (
       conversationContext: sanitizeForDownstream(message)
     }
 
-    // write-ahead: capture the escalation intent durably BEFORE calling Zendesk, so a backend outage
-    // or a crash mid-call can never lose it. The reconciler drains this once Zendesk recovers.
-    const now = new Date().toISOString()
-    enqueue({ idempotencyKey, status: 'ready', payload, sessionId, messageId, attempts: 0, createdAt: now, updatedAt: now })
+    // write-ahead: publish the escalation intent durably BEFORE calling Zendesk, so a backend outage
+    // or a crash mid-call can never lose it. The consumer drains this once Zendesk recovers.
+    const record = publish(payload, { sessionId, messageId })
 
     let ticket: ZendeskTicket
     let reply: string
@@ -174,9 +174,9 @@ export const runOrchestration = async (
       // Zendesk is unreachable — degrade gracefully. The escalation is already durable in the queue;
       // give the customer an honest provisional reference instead of claiming a ticket exists.
       nack(idempotencyKey, err.message)
-      ticket = { id: `PENDING-${idempotencyKey}`, customerId, sessionId, priority: payload.priority, reason: payload.reason, conversationContext: payload.conversationContext, createdAt: now }
+      ticket = { id: `PENDING-${idempotencyKey}`, customerId, sessionId, priority: payload.priority, reason: payload.reason, conversationContext: payload.conversationContext, createdAt: record.createdAt }
       reply = `Your request has been escalated to our support team (reference ${ticket.id}). A human agent will follow up within your SLA window — you don't need to do anything further. We apologize for any inconvenience.`
-      zendeskTicketId = undefined // reconciler backfills the real ID once Zendesk recovers
+      zendeskTicketId = undefined // consumer backfills the real ID once Zendesk recovers
     }
 
     const trace: DecisionTrace = { ...baseTrace, decision: 'escalate', zendeskTicketId, latencyMs: Date.now() - startTime }

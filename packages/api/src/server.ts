@@ -7,7 +7,7 @@ import { sessionRoutes } from './routes/sessions.ts'
 import { customerRoutes } from './routes/customers.ts'
 import { ticketRoutes } from './routes/tickets.ts'
 import { adminRoutes } from './routes/admin.ts'
-import { startReconciler } from './services/reconciler.ts'
+import { startConsumer } from './broker/consumer.ts'
 
 const app = Fastify({ logger: { level: 'info' } })
 
@@ -36,7 +36,7 @@ const start = async (): Promise<void> => {
   })
 
   // drain any escalations queued during a Zendesk outage; safe to start immediately (no-op when empty)
-  startReconciler()
+  startConsumer()
 }
 
 start()

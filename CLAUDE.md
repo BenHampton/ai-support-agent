@@ -66,8 +66,11 @@ ai-support-agent/
             │   ├── ollama.ts          # embed() and chat() wrappers
             │   ├── knowledge.ts       # chunking, embedding, cosine similarity search
             │   ├── orchestration.ts   # runOrchestration() — full request flow
-            │   ├── reconciler.ts      # drains escalation queue into Zendesk on recovery
             │   └── refund-eligibility.ts # deterministic refund verdict formatting
+            ├── broker/                # escalation durability as a message broker
+            │   ├── queue.ts           # durable queue — enqueue/ack/nack/deadLetter/listReady (atomic writes)
+            │   ├── publisher.ts       # publish() — produces a durable escalation record before the Zendesk call
+            │   └── consumer.ts        # startConsumer() — drains the queue into Zendesk on recovery
             ├── integrations/
             │   ├── salesforce.ts      # mock CRM lookup (swap for real API here)
             │   ├── zendesk.ts         # mock ticketing + resilience (timeout/retry/breaker/idempotency)
@@ -77,11 +80,10 @@ ai-support-agent/
             │   └── rules.yaml         # rule definitions, keywords, thresholds
             ├── store/
             │   ├── sessions.ts        # in-memory session + trace store
-            │   ├── escalation-queue.ts # durable escalation queue — enqueue/ack/nack/deadLetter (atomic writes)
             │   └── feature-flags.ts   # runtime outage-simulation flag read inside the Zendesk client
             ├── util/                  # sanitize() and other cross-cutting helpers
             ├── config.ts              # DATA_DIR, timeouts, retry/breaker thresholds
-            └── server.ts              # Fastify app; starts the background reconciler
+            └── server.ts              # Fastify app; starts the background consumer
 ```
 
 ## Running the Project

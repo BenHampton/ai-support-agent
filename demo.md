@@ -116,8 +116,8 @@ days-since-purchase — compare its wording with Scenario 1.
 ## Scenario 7 — Zendesk outage, graceful degradation
 
 Demonstrates resilience. When an escalation fires but the ticketing backend (Zendesk) is unreachable,
-the escalation is **never lost**: the intent is written to a durable queue before the Zendesk call,
-the customer gets an honest provisional reference, and a background reconciler creates the real ticket
+the escalation is **never lost**: the intent is published to a durable queue before the Zendesk call,
+the customer gets an honest provisional reference, and a background consumer creates the real ticket
 once Zendesk recovers. The dependency we escalate *to* can be down without swallowing the escalation.
 
 **Try it**
@@ -133,7 +133,7 @@ once Zendesk recovers. The dependency we escalate *to* can be down without swall
 
 **Expect:** the escalation still returns an **ESCALATE** with a `PENDING-…` reference (not a `ZD-…` ID),
 and `zendeskTicketId` is absent in the trace. The intent sits in `data/escalation-queue.json`. Within
-`RECONCILER_INTERVAL_MS` after step 4, the reconciler drains the queue (the Admin card's **Queued
+`CONSUMER_INTERVAL_MS` after step 4, the consumer drains the queue (the Admin card's **Queued
 escalations** returns to **0**), creates the real ticket, and back-fills the `ZD-…` ID onto the session
 trace — visible in the Dashboard/Trace panel.
 
@@ -150,7 +150,7 @@ Every scenario writes a full `DecisionTrace`. Map what you see in the UI to thes
 - **`rulesEvaluated`** — each rule with `fired` / `reason`; first match wins, so order matters.
 - **`decision`** — `answer` | `escalate` | `route`.
 - **`zendeskTicketId`** — present on escalations once the ticket is created (Scenario 2); absent while an
-  escalation is queued during a Zendesk outage, then back-filled by the reconciler (Scenario 7).
+  escalation is queued during a Zendesk outage, then back-filled by the consumer (Scenario 7).
 - **`latencyMs`** — end-to-end time; escalate/route paths are faster because they skip the LLM.
 
 Use the **Trace panel** in the Chat view for the live trace, or the **Dashboard** session list and

@@ -16,7 +16,7 @@ import { isZendeskDown, getZendeskFailureMode } from '../store/feature-flags.ts'
 // the mock AND carried over when the real client drops in.
 const ticketStore: ZendeskTicket[] = JSON.parse(readFileSync(join(DATA_DIR, 'tickets.json'), 'utf-8')) as ZendeskTicket[]
 
-// idempotency: maps a caller-supplied key to the ticket it produced, so a retry (or the reconciler
+// idempotency: maps a caller-supplied key to the ticket it produced, so a retry (or the consumer
 // re-submitting a queued record) returns the SAME ticket instead of creating a duplicate.
 const ticketsByKey = new Map<string, ZendeskTicket>()
 

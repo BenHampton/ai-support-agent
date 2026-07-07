@@ -25,7 +25,7 @@ export const ZENDESK_TIMEOUT_MS = Number(process.env.ZENDESK_TIMEOUT_MS ?? 4000)
 export const ZENDESK_MAX_RETRIES = Number(process.env.ZENDESK_MAX_RETRIES ?? 2)
 export const ZENDESK_BREAKER_THRESHOLD = Number(process.env.ZENDESK_BREAKER_THRESHOLD ?? 5)
 export const ZENDESK_BREAKER_COOLDOWN_MS = Number(process.env.ZENDESK_BREAKER_COOLDOWN_MS ?? 30_000)
-// background worker cadence for draining the escalation queue once Zendesk recovers
-export const RECONCILER_INTERVAL_MS = Number(process.env.RECONCILER_INTERVAL_MS ?? 10_000)
+// consumer poll cadence for draining the escalation queue once Zendesk recovers
+export const CONSUMER_INTERVAL_MS = Number(process.env.CONSUMER_INTERVAL_MS ?? 10_000)
 // simulate a Zendesk outage from startup; flip live via POST /admin/zendesk/down
 export const ZENDESK_DOWN_INITIAL = process.env.ZENDESK_DOWN === 'true'

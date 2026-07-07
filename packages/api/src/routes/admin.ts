@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { setZendeskDown, isZendeskDown, getZendeskFailureMode, type ZendeskFailureMode } from '../store/feature-flags.ts'
-import { queueDepth } from '../store/escalation-queue.ts'
+import { queueDepth } from '../broker/queue.ts'
 
 // Operator surface for the Zendesk-outage demo: flip the simulated outage on/off at runtime and read
 // the current state + how many escalations are queued for reconciliation. Open endpoint — this is a

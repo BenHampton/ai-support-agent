@@ -42,7 +42,7 @@ POST /chat
   → [1] Customer lookup       (mock Salesforce)
   → [2] embed + cosine search (top-5 KB chunks + scores)
   → [3] Rules engine          (6 rules, first match wins)
-       ESCALATE → queue (write-ahead) → Zendesk ticket, or graceful degrade + reconciler retry
+       ESCALATE → queue (write-ahead) → Zendesk ticket, or graceful degrade + consumer retry
        ROUTE    → hardcoded incident macro
        ANSWER   → system prompt + qwen3:8b stream
   → [4] DecisionTrace logged to session store
@@ -69,29 +69,31 @@ Retrieval operates at sub-document granularity, not whole documents:
 ### Escalation durability
 
 An escalation is a write the customer was promised — it must survive a Zendesk outage or a
-crash mid-call. It's modelled as a durable message queue with broker semantics — a record is enqueued
+crash mid-call. It's modelled as a message broker (`broker/`) with RabbitMQ-style roles — a **publisher**
+produces a record, a durable **queue** holds it, and a **consumer** drains it. A record is enqueued
 `ready`, becomes `acked` once Zendesk accepts it, and is `dead-letter`ed after bounded delivery attempts.
 The full path is:
 
 ```
-timeout → retry → circuit breaker → queue → reconciler → dead-letter
+timeout → retry → circuit breaker → queue → consumer → dead-letter
 ```
 
-- **Durable queue** (`store/escalation-queue.ts`) — on an ESCALATE decision the intent is `enqueue`d
-  **before** the Zendesk call, keyed by the request's `messageId` (status `ready | acked | dead-letter`).
-  Writes are atomic (`.tmp` + `rename`) and mirrored in memory, seeded from disk at startup, so queued
-  escalations survive a restart.
-- **Graceful degrade** (`services/orchestration.ts`) — if Zendesk is unreachable, the customer gets an
-  honest provisional reference (`PENDING-<key>`) instead of a fabricated ticket ID; the record stays
-  `ready` (a `nack` requeues it). Only a `ZendeskUnavailableError` degrades — a real bug still surfaces.
+- **Publisher** (`broker/publisher.ts`) — on an ESCALATE decision `publish()` writes the intent to the
+  queue **before** the Zendesk call, keyed by the request's `messageId`.
+- **Durable queue** (`broker/queue.ts`) — the passive queue itself (`enqueue`/`ack`/`nack`/`deadLetter`/
+  `listReady`), statuses `ready | acked | dead-letter`. Writes are atomic (`.tmp` + `rename`) and mirrored
+  in memory, seeded from disk at startup, so queued escalations survive a restart.
+- **Graceful degrade** (`services/orchestration.ts`) — after publishing, orchestration attempts delivery
+  synchronously; if Zendesk is unreachable the customer gets an honest provisional reference
+  (`PENDING-<key>`) instead of a fabricated ticket ID, and the record stays `ready` (a `nack` requeues
+  it). Only a `ZendeskUnavailableError` degrades — a real bug still surfaces.
 - **Resilient client** (`integrations/zendesk.ts`) — the Zendesk write is wrapped in a per-call timeout,
   bounded retry with exponential backoff + jitter, and a circuit breaker that trips open after N
   consecutive failures so a sustained outage fails fast to the queue instead of paying the full retry
-  budget. Idempotency keys make a retry (or reconciler re-submit) return the same ticket, never a
-  duplicate.
-- **Reconciler** (`services/reconciler.ts`) — a background interval drains the queue once Zendesk
-  recovers: re-submits each `ready` record with its stored key, `ack`s it and backfills the real ticket
-  ID onto the stored session trace, or `deadLetter`s it after bounded attempts.
+  budget. Idempotency keys make a retry (or consumer re-submit) return the same ticket, never a duplicate.
+- **Consumer** (`broker/consumer.ts`) — a background interval (`startConsumer`) drains the queue once
+  Zendesk recovers: re-submits each `ready` record with its stored key, `ack`s it and backfills the real
+  ticket ID onto the stored session trace, or `deadLetter`s it after bounded attempts.
 
 ### Outage simulation / operator surface
 
@@ -130,13 +132,16 @@ it, controlled from the **Admin** view (`packages/ui/src/components/Admin/`) or 
 │   └── kb/                      # 10 knowledge-base docs as .md files with frontmatter
 ├── packages/shared/types.ts     # Shared types (DecisionTrace, Customer, etc.)
 ├── packages/api/src/
-│   ├── server.ts                # Fastify app, port 3001; starts the background reconciler (startReconciler())
+│   ├── server.ts                # Fastify app, port 3001; starts the background consumer (startConsumer())
 │   ├── config.ts                # DATA_DIR — locates the root data/ dir
 │   ├── services/
 │   │   ├── ollama.ts            # embed() and chat() — Ollama API wrappers
 │   │   ├── knowledge.ts         # Hybrid chunking, embedding, cosine search, chunk store
-│   │   ├── reconciler.ts        # Drains the escalation queue into Zendesk once it recovers
 │   │   └── orchestration.ts     # runOrchestration() — full request flow
+│   ├── broker/                  # escalation durability as a message broker (publisher/queue/consumer)
+│   │   ├── queue.ts             # Durable queue — enqueue/ack/nack/deadLetter/listReady (atomic writes)
+│   │   ├── publisher.ts         # publish() — produces a durable escalation record before the Zendesk call
+│   │   └── consumer.ts          # startConsumer() — drains the queue into Zendesk once it recovers
 │   ├── rules/
 │   │   ├── engine.ts            # YAML-driven rules engine — runRulesEngine()
 │   │   └── rules.yaml           # 6 rules, keywords, thresholds
@@ -146,7 +151,6 @@ it, controlled from the **Admin** view (`packages/ui/src/components/Admin/`) or 
 │   ├── routes/                  # /chat, /customers, /sessions, /knowledge/search, /tickets, /admin
 │   └── store/
 │       ├── sessions.ts          # In-memory session + trace store
-│       ├── escalation-queue.ts  # Durable escalation queue — enqueue/ack/nack/deadLetter (atomic writes)
 │       └── feature-flags.ts     # Runtime outage-simulation flag read inside the Zendesk client
 └── packages/ui/src/
     ├── components/Chat/         # CustomerSelector, ChatWindow, TracePanel, EscalationCard

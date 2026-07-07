@@ -6,12 +6,13 @@ import type { CreateTicketInput } from '../integrations/zendesk.ts'
 // Durable escalation queue. This is the piece the rest of the app is missing: nothing else writes to
 // disk (tickets.json and customers.json are read-once-at-seed). An escalation is a WRITE the customer
 // was promised — if Zendesk can't accept it synchronously we must not drop it. So the intent is
-// persisted here BEFORE the Zendesk call, and a background reconciler drains it once Zendesk recovers.
+// persisted here BEFORE the Zendesk call, and the background consumer drains it once Zendesk recovers.
 // The idempotencyKey (the request's messageId) makes retries and reconciliation safe: the same
 // escalation is never enqueued or ticketed twice.
 //
 // Broker semantics: a record is enqueued 'ready', becomes 'acked' once Zendesk accepts it, and is
 // 'dead-letter'ed after bounded delivery attempts (a nack requeues it as 'ready' and bumps the counter).
+// This module is the passive queue itself — the publisher produces to it, the consumer drains it.
 //
 // In a real deployment this is a DB table or a managed queue (SQS/PubSub). For this file-based prototype
 // it is an append-only JSON file with atomic writes (write .tmp + rename) so a crash mid-write can never
@@ -66,7 +67,7 @@ export const ack = (key: string, zendeskTicketId: string): void =>
   patch(key, { status: 'acked', zendeskTicketId })
 
 // negative ack: requeue the record ('ready', still owed to Zendesk) and bump the attempt counter so the
-// reconciler retries it
+// consumer retries it
 export const nack = (key: string, error: string): void => {
   const rec = records.find((r) => r.idempotencyKey === key)
   patch(key, { status: 'ready', lastError: error, attempts: (rec?.attempts ?? 0) + 1 })

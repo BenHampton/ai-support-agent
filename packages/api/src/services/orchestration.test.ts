@@ -4,7 +4,7 @@ import { buildSystemPrompt, runOrchestration } from './orchestration.ts'
 import { makeCustomer } from '../rules/test-fixtures.ts'
 import { setZendeskDown } from '../store/feature-flags.ts'
 import { resetZendeskResilience } from '../integrations/zendesk.ts'
-import { queueSnapshot } from '../store/escalation-queue.ts'
+import { queueSnapshot } from '../broker/queue.ts'
 import { getSession } from '../store/sessions.ts'
 
 // The rules engine computes refund eligibility deterministically (engine.ts returnWindow logic).
