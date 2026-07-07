@@ -1,6 +1,6 @@
 # Ark Systems Support AI — Demo Walkthrough
 
-Six scenarios that exercise the full orchestration pipeline. Together they cover all four decision
+Seven scenarios that exercise the full orchestration pipeline. Together they cover all three decision
 paths — **ANSWER**, **ESCALATE**, and **ROUTE** — and show the core design principle: deterministic
 business rules always run *before* the LLM is ever called. Every request produces a `DecisionTrace`,
 so for each scenario you can see exactly which knowledge chunks matched, which rule fired and why,
@@ -121,23 +121,21 @@ the customer gets an honest provisional reference, and a background reconciler c
 once Zendesk recovers. The dependency we escalate *to* can be down without swallowing the escalation.
 
 **Try it**
-1. Simulate the outage:
-   ```bash
-   curl -X POST localhost:3001/admin/zendesk/down \
-     -H 'content-type: application/json' -d '{"down":true,"mode":"timeout"}'
-   ```
-2. Escalate: select `vip-eu` (Claudia Ferreira — VIP, EU), send *"I have a billing dispute on my invoice"*.
-3. Check the queue depth: `curl localhost:3001/admin/zendesk/status` → `outboxDepth: 1`.
-4. Restore Zendesk:
-   ```bash
-   curl -X POST localhost:3001/admin/zendesk/down \
-     -H 'content-type: application/json' -d '{"down":false}'
-   ```
+1. Open the **Admin** tab. The Zendesk card shows **Operational**. (Optionally pick a failure
+   mode — `timeout`, `503`, or `hang`.) Click **Simulate outage** — the pill flips to
+   **Outage (simulated)**.
+   *Or headless:* `curl -X POST localhost:3001/admin/zendesk/down -H 'content-type: application/json' -d '{"down":true,"mode":"timeout"}'`
+2. Go to **Chat**, select `vip-eu` (Claudia Ferreira — VIP, EU), send *"I have a billing dispute on my invoice"*.
+3. Back on **Admin**, click **↺ Refresh** — **Queued escalations** reads **1**.
+   *Or:* `curl localhost:3001/admin/zendesk/status` → `outboxDepth: 1`.
+4. Click **Restore Zendesk** — the pill returns to **Operational**.
+   *Or headless:* `curl -X POST localhost:3001/admin/zendesk/down -H 'content-type: application/json' -d '{"down":false}'`
 
 **Expect:** the escalation still returns an **ESCALATE** with a `PENDING-…` reference (not a `ZD-…` ID),
 and `zendeskTicketId` is absent in the trace. The intent sits in `data/escalation-outbox.json`. Within
-`RECONCILER_INTERVAL_MS` after step 4, the reconciler drains the outbox (`outboxDepth` → 0), creates the
-real ticket, and back-fills the `ZD-…` ID onto the session trace — visible in the Dashboard/Trace panel.
+`RECONCILER_INTERVAL_MS` after step 4, the reconciler drains the outbox (the Admin card's **Queued
+escalations** returns to **0**), creates the real ticket, and back-fills the `ZD-…` ID onto the session
+trace — visible in the Dashboard/Trace panel.
 
 > **Durability check:** restart the API between steps 3 and 4. The pending escalation is still in
 > `data/escalation-outbox.json` and reconciles after recovery — nothing is lost to a process restart.
