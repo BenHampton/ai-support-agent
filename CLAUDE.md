@@ -46,12 +46,14 @@ ai-support-agent/
     │   └── types.ts               # DecisionTrace, Customer, RuleResult, KnowledgeArticle, ZendeskTicket
     ├── ui/
     │   └── src/
-    │       ├── components/
+    │       ├── pages/             # route-level screens (one per NavBar route)
     │       │   ├── Chat/          # Customer-facing chat UI
     │       │   ├── Dashboard/     # FDE log viewer
     │       │   ├── Admin/         # Zendesk outage toggle + queue depth
     │       │   ├── Tickets/       # escalated-ticket view
-    │       │   ├── Landing/       # landing page
+    │       │   └── Landing/       # landing page
+    │       ├── components/        # reusable primitives + shell
+    │       │   ├── App*/          # AppBadge, AppButton, AppTooltip, AppSelectOptions
     │       │   └── NavBar/        # top-level navigation
     │       └── App.tsx
     └── api/

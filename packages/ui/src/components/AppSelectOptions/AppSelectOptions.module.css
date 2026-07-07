@@ -1,31 +1,32 @@
 /* Styles the wrapped MUI Select via its global slot classes, scoped under our module classes.
+   Two sizes: `value` (big stat-value look with a hover-reveal box) and `control` (a normal form select).
    Tokens come from vars.css so this stays consistent with the rest of the app. */
 
-/* Trigger box. Clean/borderless at rest so it matches the stat-tile values, but the border + padding are
-   reserved (transparent) so the hover/focus reveal only changes colors — no layout shift. */
+/* ---- shared trigger base ---- */
 .select {
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 4px 12px;
-  transition: background-color 0.12s, border-color 0.12s;
   display: flex;
   align-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: background-color 0.12s, border-color 0.12s;
 }
 
-/* reveal the control affordance when the user reaches for it */
-.select:hover {
-  background-color: var(--bg-subtle);
-  border-color: var(--border);
+/* remove the standard-variant underline for a clean look (both sizes) */
+.select::before,
+.select::after {
+  border-bottom: none !important;
 }
 
-/* MUI adds .Mui-focused on the root when focused/open — accent border for keyboard focus */
-.select:global(.Mui-focused) {
-  background-color: var(--bg-subtle);
-  border-color: var(--accent);
+.select:global(.Mui-disabled) {
+  opacity: 0.5;
 }
 
-/* trigger value — matches the stat-tile look: 20px, weight 700, monospace, --text-bright */
-.select :global(.MuiSelect-select) {
+/* ============ value size — matches the stat-tile value (20px, monospace, bright) ============ */
+.value {
+  padding: 4px 12px;
+}
+
+.value :global(.MuiSelect-select) {
   display: flex;
   align-items: center;
   font-family: monospace;
@@ -38,38 +39,68 @@
   min-width: 0;
 }
 
-.select :global(.MuiSelect-icon) {
+.value :global(.MuiSelect-icon) {
   color: var(--text-muted);
   transition: color 0.12s;
 }
 
-.select:hover :global(.MuiSelect-icon),
-.select:global(.Mui-focused) :global(.MuiSelect-icon) {
+/* hover/focus reveal — clean at rest, control box appears on interaction (border/padding reserved above) */
+.value:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--border);
+}
+
+.value:global(.Mui-focused) {
+  background-color: var(--bg-subtle);
+  border-color: var(--accent);
+}
+
+.value:hover :global(.MuiSelect-icon),
+.value:global(.Mui-focused) :global(.MuiSelect-icon) {
   color: var(--text-bright);
 }
 
-/* remove the standard-variant underline for a clean "value" look */
-.select::before,
-.select::after {
-  border-bottom: none !important;
+/* keep the disabled value bright (MUI greys it by default) */
+.value :global(.MuiSelect-select.Mui-disabled) {
+  -webkit-text-fill-color: var(--text-bright);
 }
 
-.select:global(.Mui-disabled) {
-  opacity: 0.5;
-}
-
-/* locked (outage active / request in flight) — don't offer the interactive box */
-.select:global(.Mui-disabled):hover {
+/* locked (disabled) — don't offer the interactive box */
+.value:global(.Mui-disabled):hover {
   background-color: transparent;
   border-color: transparent;
 }
 
-/* keep the disabled value bright (MUI greys it by default) */
-.select :global(.MuiSelect-select.Mui-disabled) {
-  -webkit-text-fill-color: var(--text-bright);
+/* ============ control size — a normal bordered form select ============ */
+.control {
+  background-color: var(--bg-base);
+  border-color: var(--border);
+  border-radius: 6px;
 }
 
-/* portalled menu paper (reached via slotProps.paper.className) */
+.control :global(.MuiSelect-select) {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text);
+  padding: 8px 32px 8px 10px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.control :global(.MuiSelect-icon) {
+  color: var(--text-muted);
+}
+
+.control:hover {
+  border-color: var(--text-muted);
+}
+
+.control:global(.Mui-focused) {
+  border-color: var(--accent);
+}
+
+/* ============ portalled menu paper (shared) ============ */
 .menu {
   background-color: var(--bg-panel) !important;
   border: 1px solid var(--border);
@@ -78,10 +109,7 @@
 }
 
 .menu :global(.MuiMenuItem-root) {
-  font-family: monospace;
-  font-size: 14px;
   color: var(--text);
-  /* match the trigger's left inset so the option text lines up under the selected value */
   padding: 8px 12px;
 }
 
@@ -96,4 +124,14 @@
 
 .menu :global(.MuiMenuItem-root.Mui-selected):hover {
   background-color: var(--accent-strong);
+}
+
+/* per-size menu item typography */
+.menuValue :global(.MuiMenuItem-root) {
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.menuControl :global(.MuiMenuItem-root) {
+  font-size: 13px;
 }

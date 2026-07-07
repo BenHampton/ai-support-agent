@@ -1,10 +1,10 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { NavBar } from './components/NavBar/NavBar'
-import { Chat } from './components/Chat/Chat'
-import { Dashboard } from './components/Dashboard/Dashboard'
-import { Tickets } from './components/Tickets/Tickets'
-import { Admin } from './components/Admin/Admin'
-import { Landing } from './components/Landing/Landing'
+import { NavBar } from '@components/NavBar/NavBar'
+import { Chat } from '@pages/Chat/Chat'
+import { Dashboard } from '@pages/Dashboard/Dashboard'
+import { Tickets } from '@pages/Tickets/Tickets'
+import { Admin } from '@pages/Admin/Admin'
+import { Landing } from '@pages/Landing/Landing'
 import styles from './App.module.css'
 
 export const App = (): JSX.Element => (

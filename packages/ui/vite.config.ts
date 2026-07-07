@@ -13,7 +13,9 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     resolve: {
       alias: {
-        '@shared': path.resolve(__dirname, '../shared')
+        '@shared': path.resolve(__dirname, '../shared'),
+        '@components': path.resolve(__dirname, 'src/components'),
+        '@pages': path.resolve(__dirname, 'src/pages')
       }
     },
     server: {

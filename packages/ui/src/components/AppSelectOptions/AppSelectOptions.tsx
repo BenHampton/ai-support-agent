@@ -7,10 +7,14 @@ import styles from './AppSelectOptions.module.css'
 
 type Option = { value: string; label?: string }
 
+// `value` = big stat-value look (hover-reveal); `control` = a normal bordered form select
+type SelectSize = 'value' | 'control'
+
 type Props = {
   value: string
   onChange: (value: string) => void
   options: Option[]
+  size?: SelectSize
   disabled?: boolean
   fullWidth?: boolean
   ariaLabel: string
@@ -20,20 +24,23 @@ export const AppSelectOptions = ({
   value,
   onChange,
   options,
+  size = 'value',
   disabled = false,
   fullWidth = false,
   ariaLabel
 }: Props): JSX.Element => {
   const handleChange = (e: SelectChangeEvent): void => onChange(e.target.value)
+  const triggerClass = `${styles.select} ${size === 'control' ? styles.control : styles.value}`
+  const paperClass = `${styles.menu} ${size === 'control' ? styles.menuControl : styles.menuValue}`
 
   return (
     <FormControl variant="standard" disabled={disabled} fullWidth={fullWidth}>
       <Select
         value={value}
         onChange={handleChange}
-        className={styles.select}
+        className={triggerClass}
         inputProps={{ 'aria-label': ariaLabel }}
-        MenuProps={{ slotProps: { paper: { className: styles.menu } } }}
+        MenuProps={{ slotProps: { paper: { className: paperClass } } }}
       >
         {options.map((o) => (
           <MenuItem key={o.value} value={o.value}>
