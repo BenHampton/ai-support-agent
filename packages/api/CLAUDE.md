@@ -14,22 +14,26 @@ Backend-specific guidance. Auto-loaded when working under `packages/api/`. See t
 - **Modular by layer** — each service (`ollama`, `knowledge`, `rules`, `salesforce`, `zendesk`) is independently importable and callable without standing up the full server
 - **Rules before LLM** — deterministic rules always evaluate first; the LLM is only reached on an `ANSWER` decision
 - **Trace everything** — every orchestration step emits to `DecisionTrace`, regardless of decision outcome; no silent paths
-- **Mock at the boundary** — `salesforce.ts` and `zendesk.ts` are the only files that would change in a real integration; all business logic above them is production-ready
-- **No shared mutable state between requests** — session store is append-only; rules and knowledge are read-only after startup
+- **Mock at the boundary** — `integrations/salesforce.ts` and `integrations/zendesk.ts` are the integration swap points; the file-based `store/escalation-outbox.ts` is the durability swap point (a DB table or managed queue in production). All business logic above them is production-ready
+- **Shared mutable state is deliberate and bounded** — the session store is append-only; rules and knowledge are read-only after startup. The only intentionally mutable module state is the durable escalation outbox (`store/escalation-outbox.ts`, a write-ahead queue) and the outage feature flag (`store/feature-flags.ts`, a runtime toggle)
 
 ## Orchestration (per chat message)
 
 ```
 POST /chat { sessionId, customerId, message }
   → [1] getCustomer(customerId)         — mock Salesforce
-  → [2] embed(message) → cosineSearch() — top-3 knowledge articles + scores
+  → [2] embed(message) → cosineSearch() — top-5 knowledge articles + scores
   → [3] evaluateRules(ctx)              — deterministic rules before LLM
-       ESCALATE → createTicket()        — mock Zendesk, return handoff
+       ESCALATE → enqueue(outbox) → createTicket(), or graceful degrade (PENDING-<id>)
        ROUTE    → incident macro response
        ANSWER   → buildPrompt() → qwen3 stream
   → [4] log DecisionTrace to session store
   → [5] return { reply, trace }
 ```
+
+A background reconciler (`services/reconciler.ts`, started in `server.ts` via `startReconciler()`)
+drains any escalation left `pending` in the outbox into Zendesk once it recovers, then backfills the
+real ticket ID onto the stored trace.
 
 ## Business Rules (rules.ts)
 

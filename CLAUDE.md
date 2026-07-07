@@ -35,32 +35,53 @@ Directory-specific guidance lives in `packages/api/CLAUDE.md` and `packages/ui/C
 ```
 ai-support-agent/
 ├── package.json               # npm workspaces: ["packages/ui", "packages/api"]
-├── data/                      # external mock data (read at runtime — swap point for real integrations)
-│   ├── customers.json         # mock Salesforce customers
-│   ├── tickets.json           # ticket-store seed ([] by default)
-│   └── kb/                    # knowledge-base .md docs
+├── data/                          # external mock data (read at runtime — swap point for real integrations)
+│   ├── customers.json             # mock Salesforce customers
+│   ├── tickets.json               # ticket-store seed ([] by default)
+│   ├── escalation-outbox.json     # durable escalation queue (write-ahead, survives restart)
+│   └── kb/                        # knowledge-base .md docs
 └── packages/
     ├── shared/
-    │   └── types.ts           # DecisionTrace, Customer, RuleResult, KnowledgeArticle, ZendeskTicket
+    │   └── types.ts               # DecisionTrace, Customer, RuleResult, KnowledgeArticle, ZendeskTicket
     ├── ui/
     │   └── src/
     │       ├── components/
-    │       │   ├── Chat/      # Customer-facing chat UI
-    │       │   └── Dashboard/ # FDE log viewer
+    │       │   ├── Chat/          # Customer-facing chat UI
+    │       │   ├── Dashboard/     # FDE log viewer
+    │       │   ├── Admin/         # Zendesk outage toggle + outbox depth
+    │       │   ├── Tickets/       # escalated-ticket view
+    │       │   ├── Landing/       # landing page
+    │       │   └── NavBar/        # top-level navigation
     │       └── App.tsx
     └── api/
         └── src/
             ├── routes/
-            │   ├── chat.ts        # POST /chat
-            │   ├── sessions.ts    # GET /sessions, GET /sessions/:id/trace
-            │   └── knowledge.ts   # GET /knowledge/search
+            │   ├── chat.ts            # POST /chat
+            │   ├── sessions.ts        # GET /sessions, GET /sessions/:id/trace
+            │   ├── knowledge.ts       # GET /knowledge/search
+            │   ├── customers.ts       # GET /customers
+            │   ├── tickets.ts         # GET /tickets
+            │   └── admin.ts           # /admin/zendesk/* — outage toggle + status
             ├── services/
-            │   ├── ollama.ts      # embed() and chat() wrappers
-            │   ├── knowledge.ts   # cosine similarity search
-            │   ├── salesforce.ts  # mock CRM lookup
-            │   ├── zendesk.ts     # mock ticket store
-            │   └── rules.ts       # business rules engine
-            └── server.ts
+            │   ├── ollama.ts          # embed() and chat() wrappers
+            │   ├── knowledge.ts       # chunking, embedding, cosine similarity search
+            │   ├── orchestration.ts   # runOrchestration() — full request flow
+            │   ├── reconciler.ts      # drains escalation outbox into Zendesk on recovery
+            │   └── refund-eligibility.ts # deterministic refund verdict formatting
+            ├── integrations/
+            │   ├── salesforce.ts      # mock CRM lookup (swap for real API here)
+            │   ├── zendesk.ts         # mock ticketing + resilience (timeout/retry/breaker/idempotency)
+            │   └── arkcloud-status.ts # active-incident source for routing
+            ├── rules/
+            │   ├── engine.ts          # runRulesEngine() — YAML-driven rules engine
+            │   └── rules.yaml         # rule definitions, keywords, thresholds
+            ├── store/
+            │   ├── sessions.ts        # in-memory session + trace store
+            │   ├── escalation-outbox.ts # durable write-ahead outbox (atomic writes, in-memory mirror)
+            │   └── feature-flags.ts   # runtime outage-simulation flag read inside the Zendesk client
+            ├── util/                  # sanitize() and other cross-cutting helpers
+            ├── config.ts              # DATA_DIR, timeouts, retry/breaker thresholds
+            └── server.ts              # Fastify app; starts the background reconciler
 ```
 
 ## Running the Project

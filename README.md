@@ -42,7 +42,7 @@ POST /chat
   → [1] Customer lookup       (mock Salesforce)
   → [2] embed + cosine search (top-5 KB chunks + scores)
   → [3] Rules engine          (6 rules, first match wins)
-       ESCALATE → Zendesk ticket + handoff message
+       ESCALATE → outbox (write-ahead) → Zendesk ticket, or graceful degrade + reconciler retry
        ROUTE    → hardcoded incident macro
        ANSWER   → system prompt + qwen3:8b stream
   → [4] DecisionTrace logged to session store
@@ -66,6 +66,43 @@ Retrieval operates at sub-document granularity, not whole documents:
   (grouped under each doc title) into the LLM prompt — keeping context focused and
   within token limits rather than dumping entire documents.
 
+### Escalation durability
+
+An escalation is a write the customer was promised — it must survive a Zendesk outage or a
+crash mid-call. The full path is:
+
+```
+timeout → retry → circuit breaker → outbox → reconciler → dead-letter
+```
+
+- **Write-ahead outbox** (`store/escalation-outbox.ts`) — on an ESCALATE decision the intent is
+  persisted **before** the Zendesk call, keyed by the request's `messageId` (`pending | submitted |
+  failed`). Writes are atomic (`.tmp` + `rename`) and mirrored in memory, seeded from disk at startup,
+  so pending escalations survive a restart.
+- **Graceful degrade** (`services/orchestration.ts`) — if Zendesk is unreachable, the customer gets an
+  honest provisional reference (`PENDING-<key>`) instead of a fabricated ticket ID; the record stays
+  `pending`. Only a `ZendeskUnavailableError` degrades — a real bug still surfaces.
+- **Resilient client** (`integrations/zendesk.ts`) — the Zendesk write is wrapped in a per-call timeout,
+  bounded retry with exponential backoff + jitter, and a circuit breaker that trips open after N
+  consecutive failures so a sustained outage fails fast to the outbox instead of paying the full retry
+  budget. Idempotency keys make a retry (or reconciler re-submit) return the same ticket, never a
+  duplicate.
+- **Reconciler** (`services/reconciler.ts`) — a background interval drains the outbox once Zendesk
+  recovers: re-submits each pending record with its stored key, marks it submitted and backfills the
+  real ticket ID onto the stored session trace, or dead-letters it after bounded attempts.
+
+### Outage simulation / operator surface
+
+The outage is injected at the Zendesk client boundary so the simulated fault is indistinguishable from
+a real one and exercises the entire path above. A runtime feature flag (`store/feature-flags.ts`) drives
+it, controlled from the **Admin** view (`packages/ui/src/components/Admin/`) or directly via:
+
+- `POST /admin/zendesk/down` — body `{ down: boolean, mode?: 'timeout' | '503' | 'hang' }`; flips the
+  simulated outage. `mode` selects how it fails (fast-fail timeout, 503, or hang until the client
+  timeout fires).
+- `GET /admin/zendesk/status` — returns `{ down, mode, outboxDepth }`, where `outboxDepth` is the number
+  of escalations currently queued for reconciliation.
+
 ---
 
 ## Test Scenarios
@@ -87,25 +124,31 @@ Retrieval operates at sub-document granularity, not whole documents:
 ├── data/                        # external mock data (read at runtime — swap point for real integrations)
 │   ├── customers.json           # mock Salesforce customer records
 │   ├── tickets.json             # seed for the in-memory ticket store ([] by default)
+│   ├── escalation-outbox.json   # durable escalation queue (write-ahead, survives restart)
 │   └── kb/                      # 10 knowledge-base docs as .md files with frontmatter
 ├── packages/shared/types.ts     # Shared types (DecisionTrace, Customer, etc.)
 ├── packages/api/src/
-│   ├── server.ts                # Fastify app, port 3001
+│   ├── server.ts                # Fastify app, port 3001; starts the background reconciler (startReconciler())
 │   ├── config.ts                # DATA_DIR — locates the root data/ dir
 │   ├── services/
 │   │   ├── ollama.ts            # embed() and chat() — Ollama API wrappers
 │   │   ├── knowledge.ts         # Hybrid chunking, embedding, cosine search, chunk store
+│   │   ├── reconciler.ts        # Drains the escalation outbox into Zendesk once it recovers
 │   │   └── orchestration.ts     # runOrchestration() — full request flow
 │   ├── rules/
 │   │   ├── engine.ts            # YAML-driven rules engine — runRulesEngine()
 │   │   └── rules.yaml           # 6 rules, keywords, thresholds
 │   ├── integrations/
 │   │   ├── salesforce.ts        # Mock CRM — loads customers.json (swap for real API here)
-│   │   └── zendesk.ts           # Mock ticketing — seeds store from tickets.json (swap for real API here)
-│   ├── routes/                  # /chat, /customers, /sessions, /knowledge/search
-│   └── store/sessions.ts        # In-memory session + trace store
+│   │   └── zendesk.ts           # Mock ticketing + resilience layer (timeout/retry/breaker/idempotency)
+│   ├── routes/                  # /chat, /customers, /sessions, /knowledge/search, /tickets, /admin
+│   └── store/
+│       ├── sessions.ts          # In-memory session + trace store
+│       ├── escalation-outbox.ts # Durable write-ahead outbox (atomic writes, in-memory mirror)
+│       └── feature-flags.ts     # Runtime outage-simulation flag read inside the Zendesk client
 └── packages/ui/src/
     ├── components/Chat/         # CustomerSelector, ChatWindow, TracePanel, EscalationCard
+    ├── components/Admin/        # Zendesk outage toggle + outbox depth (operator surface)
     └── components/Dashboard/    # SessionList, TraceTimeline
 ```
 
