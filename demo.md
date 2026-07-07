@@ -33,15 +33,17 @@ never authored by the LLM), then the model streams grounded return-process help 
 ## Scenario 2 — VIP billing escalation
 
 Demonstrates tier-driven escalation. A VIP raising a billing topic must always go to a human — this
-fires before any LLM call and creates a Zendesk ticket.
+fires before any LLM call and publishes the escalation to the durable queue for async delivery.
 
 **Try it**
 1. Select customer `vip-eu` (Claudia Ferreira — VIP, EU).
 2. Send: *"I have a billing dispute on my invoice"*
 
-**Expect:** an **ESCALATE** via `vipBillingRule` (`priority: urgent`). A mock Zendesk ticket is
-created and a handoff/escalation card appears in the UI. In the trace, `zendeskTicketId` is
-populated and the LLM is never invoked.
+**Expect:** an **ESCALATE** via `vipBillingRule` (`priority: urgent`). The escalation card appears in the
+UI with a provisional **`PENDING-…`** reference (the LLM is never invoked). Delivery is async: within
+`CONSUMER_INTERVAL_MS` the consumer creates the real mock Zendesk ticket, and the `ZD-…` id is
+back-filled onto the trace — visible in the Dashboard/Trace panel and under **Tickets**. So
+`zendeskTicketId` starts absent and becomes populated a moment later, without you doing anything.
 
 ---
 
@@ -115,10 +117,11 @@ days-since-purchase — compare its wording with Scenario 1.
 
 ## Scenario 7 — Zendesk outage, graceful degradation
 
-Demonstrates resilience. When an escalation fires but the ticketing backend (Zendesk) is unreachable,
-the escalation is **never lost**: the intent is published to a durable queue before the Zendesk call,
-the customer gets an honest provisional reference, and a background consumer creates the real ticket
-once Zendesk recovers. The dependency we escalate *to* can be down without swallowing the escalation.
+Demonstrates resilience. Every escalation is published to the durable queue and delivered asynchronously
+by the consumer — so an outage isn't a special code path, just a longer wait. When the ticketing backend
+(Zendesk) is unreachable, the record simply stays `ready`/`PENDING` in the queue until Zendesk recovers,
+then the consumer creates the real ticket. The escalation is **never lost**, and the dependency we
+escalate *to* can be down without swallowing it.
 
 **Try it**
 1. Open the **Admin** tab. The Zendesk card shows **Operational**. (Optionally pick a failure
@@ -149,8 +152,9 @@ Every scenario writes a full `DecisionTrace`. Map what you see in the UI to thes
 - **`knowledgeMatches`** — the top-5 retrieved chunks with cosine scores (Scenarios 1, 3, 4, 5).
 - **`rulesEvaluated`** — each rule with `fired` / `reason`; first match wins, so order matters.
 - **`decision`** — `answer` | `escalate` | `route`.
-- **`zendeskTicketId`** — present on escalations once the ticket is created (Scenario 2); absent while an
-  escalation is queued during a Zendesk outage, then back-filled by the consumer (Scenario 7).
+- **`zendeskTicketId`** — always absent at escalation time (delivery is async — the reply carries a
+  `PENDING-…` reference); back-filled by the consumer once it creates the ticket, within a tick when
+  Zendesk is healthy (Scenario 2) or after recovery during an outage (Scenario 7).
 - **`latencyMs`** — end-to-end time; escalate/route paths are faster because they skip the LLM.
 
 Use the **Trace panel** in the Chat view for the live trace, or the **Dashboard** session list and

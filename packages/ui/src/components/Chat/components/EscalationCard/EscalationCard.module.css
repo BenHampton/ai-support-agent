@@ -42,6 +42,12 @@
   font-family: monospace;
 }
 
+.note {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
 .valueTicket {
   color: var(--danger-text);
 }

@@ -42,7 +42,7 @@ POST /chat
   → [1] Customer lookup       (mock Salesforce)
   → [2] embed + cosine search (top-5 KB chunks + scores)
   → [3] Rules engine          (6 rules, first match wins)
-       ESCALATE → queue (write-ahead) → Zendesk ticket, or graceful degrade + consumer retry
+       ESCALATE → publish to queue → PENDING- reference; consumer delivers to Zendesk async
        ROUTE    → hardcoded incident macro
        ANSWER   → system prompt + qwen3:8b stream
   → [4] DecisionTrace logged to session store
@@ -79,21 +79,20 @@ timeout → retry → circuit breaker → queue → consumer → dead-letter
 ```
 
 - **Publisher** (`broker/publisher.ts`) — on an ESCALATE decision `publish()` writes the intent to the
-  queue **before** the Zendesk call, keyed by the request's `messageId`.
+  queue keyed by the request's `messageId`, and the request returns immediately with a provisional
+  `PENDING-<key>` reference. Zendesk is never called in the request path — delivery is fully async.
 - **Durable queue** (`broker/queue.ts`) — the passive queue itself (`enqueue`/`ack`/`nack`/`deadLetter`/
   `listReady`), statuses `ready | acked | dead-letter`. Writes are atomic (`.tmp` + `rename`) and mirrored
   in memory, seeded from disk at startup, so queued escalations survive a restart.
-- **Graceful degrade** (`services/orchestration.ts`) — after publishing, orchestration attempts delivery
-  synchronously; if Zendesk is unreachable the customer gets an honest provisional reference
-  (`PENDING-<key>`) instead of a fabricated ticket ID, and the record stays `ready` (a `nack` requeues
-  it). Only a `ZendeskUnavailableError` degrades — a real bug still surfaces.
+- **Consumer** (`broker/consumer.ts`) — a background interval (`startConsumer`, single-flight guarded) is
+  the sole deliverer: it drains each `ready` record, creates the Zendesk ticket with the record's stored
+  key, `ack`s it and backfills the real `ZD-` id onto the stored session trace, or `deadLetter`s it after
+  bounded attempts. A healthy escalation is delivered on the next tick; during an outage the record just
+  stays `ready` until Zendesk recovers — an outage is a longer wait, not a separate code path.
 - **Resilient client** (`integrations/zendesk.ts`) — the Zendesk write is wrapped in a per-call timeout,
   bounded retry with exponential backoff + jitter, and a circuit breaker that trips open after N
-  consecutive failures so a sustained outage fails fast to the queue instead of paying the full retry
-  budget. Idempotency keys make a retry (or consumer re-submit) return the same ticket, never a duplicate.
-- **Consumer** (`broker/consumer.ts`) — a background interval (`startConsumer`) drains the queue once
-  Zendesk recovers: re-submits each `ready` record with its stored key, `ack`s it and backfills the real
-  ticket ID onto the stored session trace, or `deadLetter`s it after bounded attempts.
+  consecutive failures so a sustained outage fails fast instead of paying the full retry budget.
+  Idempotency keys make a retry (or consumer re-submit) return the same ticket, never a duplicate.
 
 ### Outage simulation / operator surface
 
@@ -114,7 +113,7 @@ it, controlled from the **Admin** view (`packages/ui/src/components/Admin/`) or 
 | Customer | Message | Expected |
 |---|---|---|
 | `consumer-us` | "How do I return my laptop?" | ANSWER — `refundEligibilityRule` |
-| `vip-eu` | "I have a billing dispute on my invoice" | ESCALATE — `vipBillingRule`, Zendesk ticket |
+| `vip-eu` | "I have a billing dispute on my invoice" | ESCALATE — `vipBillingRule`, queued → Zendesk ticket (async) |
 | `smb-us` | "What is quantum entanglement?" | ESCALATE — `lowConfidenceRule` (score < 0.5) |
 | `enterprise-eu` | "What is your GDPR data retention policy?" | ANSWER — `regulatedTopicRule` |
 | `consumer-us` | "Is ArkCloud EU down?" | ROUTE — `knownOutageRule`, incident macro |

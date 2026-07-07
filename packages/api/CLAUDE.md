@@ -25,16 +25,16 @@ POST /chat { sessionId, customerId, message }
   → [1] getCustomer(customerId)         — mock Salesforce
   → [2] embed(message) → cosineSearch() — top-5 knowledge articles + scores
   → [3] evaluateRules(ctx)              — deterministic rules before LLM
-       ESCALATE → publish(queue) → createTicket(), or graceful degrade (PENDING-<id>)
+       ESCALATE → publish(queue) → return PENDING-<id> (consumer delivers to Zendesk async)
        ROUTE    → incident macro response
        ANSWER   → buildPrompt() → qwen3 stream
   → [4] log DecisionTrace to session store
   → [5] return { reply, trace }
 ```
 
-A background consumer (`broker/consumer.ts`, started in `server.ts` via `startConsumer()`)
-drains any escalation left `ready` in the queue into Zendesk once it recovers, then backfills the
-real ticket ID onto the stored trace.
+A background consumer (`broker/consumer.ts`, started in `server.ts` via `startConsumer()`) is the sole
+deliverer: it drains `ready` escalations into Zendesk asynchronously (on the next tick when healthy, or
+once Zendesk recovers after an outage), then backfills the real ticket ID onto the stored trace.
 
 ## Business Rules (rules.ts)
 

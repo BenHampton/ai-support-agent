@@ -2,9 +2,8 @@ import type { DecisionTrace, Incident, Message, RuleResult, ZendeskTicket } from
 import { getCustomer } from '../integrations/salesforce.ts'
 import { searchKnowledge, getChunksByIds } from './knowledge.js'
 import { runRulesEngine } from '../rules/engine.ts'
-import { createTicket, ZendeskUnavailableError, type CreateTicketInput } from '../integrations/zendesk.ts'
+import { type CreateTicketInput } from '../integrations/zendesk.ts'
 import { publish } from '../broker/publisher.ts'
-import { ack, nack } from '../broker/queue.ts'
 import { getActiveIncidents, formatIncidentMessage } from '../integrations/arkcloud-status.ts'
 import { chat, type OllamaChatMessage } from './ollama.js'
 import { formatRefundEligibilityVerdict } from './refund-eligibility.ts'
@@ -156,30 +155,24 @@ export const runOrchestration = async (
       conversationContext: sanitizeForDownstream(message)
     }
 
-    // write-ahead: publish the escalation intent durably BEFORE calling Zendesk, so a backend outage
-    // or a crash mid-call can never lose it. The consumer drains this once Zendesk recovers.
+    // Pure async queue: publish the escalation and return immediately. The consumer is the sole
+    // deliverer — it creates the Zendesk ticket off the queue and backfills the real ZD- id onto this
+    // trace. We never call Zendesk in the request path, so the customer always gets a provisional
+    // reference here; the real ticket id shows up in the trace/Dashboard once the consumer delivers.
     const record = publish(payload, { sessionId, messageId })
 
-    let ticket: ZendeskTicket
-    let reply: string
-    let zendeskTicketId: string | undefined
-
-    try {
-      ticket = await createTicket(payload)
-      ack(idempotencyKey, ticket.id)
-      zendeskTicketId = ticket.id
-      reply = `Your request has been escalated to our support team. A ticket has been created (${ticket.id}) and you will hear from us within your SLA window. We apologize for any inconvenience.`
-    } catch (err) {
-      if (!(err instanceof ZendeskUnavailableError)) throw err // a real bug should still surface
-      // Zendesk is unreachable — degrade gracefully. The escalation is already durable in the queue;
-      // give the customer an honest provisional reference instead of claiming a ticket exists.
-      nack(idempotencyKey, err.message)
-      ticket = { id: `PENDING-${idempotencyKey}`, customerId, sessionId, priority: payload.priority, reason: payload.reason, conversationContext: payload.conversationContext, createdAt: record.createdAt }
-      reply = `Your request has been escalated to our support team (reference ${ticket.id}). A human agent will follow up within your SLA window — you don't need to do anything further. We apologize for any inconvenience.`
-      zendeskTicketId = undefined // consumer backfills the real ID once Zendesk recovers
+    const ticket: ZendeskTicket = {
+      id: `PENDING-${idempotencyKey}`,
+      customerId,
+      sessionId,
+      priority: payload.priority,
+      reason: payload.reason,
+      conversationContext: payload.conversationContext,
+      createdAt: record.createdAt
     }
+    const reply = `Your request has been escalated to our support team (reference ${ticket.id}). A human agent will follow up within your SLA window — you don't need to do anything further. We apologize for any inconvenience.`
 
-    const trace: DecisionTrace = { ...baseTrace, decision: 'escalate', zendeskTicketId, latencyMs: Date.now() - startTime }
+    const trace: DecisionTrace = { ...baseTrace, decision: 'escalate', zendeskTicketId: undefined, latencyMs: Date.now() - startTime }
 
     const userMsg: Message = { id: `${messageId}-u`, role: 'user', content: message, timestamp: new Date().toISOString() }
     const assistantMsg: Message = { id: `${messageId}-a`, role: 'assistant', content: reply, timestamp: new Date().toISOString(), trace }

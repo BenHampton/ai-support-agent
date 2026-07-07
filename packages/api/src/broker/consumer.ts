@@ -16,17 +16,27 @@ const backfillTrace = (sessionId: string, messageId: string, zendeskTicketId: st
   if (trace) trace.zendeskTicketId = zendeskTicketId
 }
 
+// re-entrancy guard: only one drain runs at a time, so a slow drain (e.g. Zendesk timing out across many
+// records) can't overlap with the next interval tick and double-deliver the same record.
+let draining = false
+
 export const consumeOnce = async (): Promise<void> => {
-  for (const record of listReady()) {
-    try {
-      const ticket = await createTicket(record.payload) // stored key → no duplicate ticket
-      ack(record.idempotencyKey, ticket.id)
-      backfillTrace(record.sessionId, record.messageId, ticket.id)
-    } catch (err) {
-      if (!(err instanceof ZendeskUnavailableError)) throw err // real bug — surface it
-      if (record.attempts + 1 >= MAX_ATTEMPTS) deadLetter(record.idempotencyKey, err.message)
-      else nack(record.idempotencyKey, err.message)
+  if (draining) return
+  draining = true
+  try {
+    for (const record of listReady()) {
+      try {
+        const ticket = await createTicket(record.payload) // stored key → no duplicate ticket
+        ack(record.idempotencyKey, ticket.id)
+        backfillTrace(record.sessionId, record.messageId, ticket.id)
+      } catch (err) {
+        if (!(err instanceof ZendeskUnavailableError)) throw err // real bug — surface it
+        if (record.attempts + 1 >= MAX_ATTEMPTS) deadLetter(record.idempotencyKey, err.message)
+        else nack(record.idempotencyKey, err.message)
+      }
     }
+  } finally {
+    draining = false
   }
 }
 

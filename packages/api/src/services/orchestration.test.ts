@@ -88,14 +88,21 @@ describe('buildSystemPrompt — refund eligibility boundary', () => {
 })
 
 describe('runOrchestration — downstream escaping on escalation', () => {
-  it('sanitizes user text before it lands in the Zendesk ticket conversationContext', async () => {
-    // vip-eu + billing keyword → vipBillingRule escalates (no LLM), creating a ticket from the raw message
+  it('sanitizes user text at publish time and returns a provisional reference (async delivery)', async () => {
+    // vip-eu + billing keyword → vipBillingRule escalates (no LLM). Even with Zendesk UP, orchestration
+    // only publishes — the consumer creates the real ticket — so the response is always provisional.
     const result = await runOrchestration(
       { sessionId: 'test-escalate', customerId: 'vip-eu', message: 'billing dispute <img src=x onerror=alert(1)>' },
       () => {}
     )
 
     expect(result.decision).toBe('escalate')
+    // async contract: provisional reference now, real ZD- id backfilled onto the trace by the consumer
+    expect(result.ticket?.id).toMatch(/^PENDING-/)
+    expect(result.trace.zendeskTicketId).toBeUndefined()
+    expect(queueSnapshot().find((r) => r.idempotencyKey === result.trace.messageId)?.status).toBe('ready')
+
+    // raw user text is sanitized before it enters the queue payload (and thus the eventual Zendesk ticket)
     const context = result.ticket?.conversationContext ?? ''
     expect(context).not.toContain('<img')
     expect(context).not.toContain('<')
@@ -103,17 +110,18 @@ describe('runOrchestration — downstream escaping on escalation', () => {
   })
 })
 
-describe('runOrchestration — Zendesk outage degrades gracefully', () => {
+describe('runOrchestration — escalation is durably queued even while Zendesk is down', () => {
   afterEach(() => {
     setZendeskDown(false)
     resetZendeskResilience()
   })
 
-  it('when Zendesk is down, escalation still succeeds with a provisional reference and is queued durably', async () => {
+  it('publishes a ready record and returns a provisional reference with Zendesk unreachable', async () => {
     resetZendeskResilience()
     setZendeskDown(true, 'timeout')
 
-    // vip-eu + billing keyword → vipBillingRule escalates; the Zendesk create fails, so we degrade
+    // vip-eu + billing keyword → vipBillingRule escalates; orchestration only publishes, so the record
+    // stays 'ready' (the consumer can't deliver until Zendesk recovers) and the reply is provisional
     const result = await runOrchestration(
       { sessionId: 'test-outage', customerId: 'vip-eu', message: 'I have a billing dispute on my invoice' },
       () => {}
