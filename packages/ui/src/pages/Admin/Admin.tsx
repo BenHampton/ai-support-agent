@@ -142,7 +142,7 @@ export const Admin = (): JSX.Element => {
               </AppButton>
             </AppTooltip>
 
-            <AppButton variant="subtle" onClick={load} disabled={busy}>↺ Refresh</AppButton>
+            <AppButton variant="subtle" onClick={load}>↺ Refresh</AppButton>
           </div>
         </>
       )}
