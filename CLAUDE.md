@@ -69,7 +69,9 @@ ai-support-agent/
             │   ├── ollama.ts          # embed() and chat() wrappers
             │   ├── knowledge.ts       # chunking, embedding, cosine similarity search
             │   ├── orchestration.ts   # runOrchestration() — full request flow
-            │   └── refund-eligibility.ts # deterministic refund verdict formatting
+            │   ├── refund-eligibility.ts # deterministic refund verdict formatting
+            │   └── trace/
+            │       └── tracer.ts      # Tracer class — owns DecisionTrace lifecycle (id, timing, assembly, persistence)
             ├── broker/                # escalation durability as a message broker
             │   ├── queue.ts           # durable queue + DLQ store (enqueue/ack/nack/deadLetter, atomic writes)
             │   ├── publisher.ts       # publish() new escalations + replay() dead-letters back onto the queue

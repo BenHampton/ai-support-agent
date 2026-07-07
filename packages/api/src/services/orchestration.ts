@@ -1,4 +1,4 @@
-import type { DecisionTrace, Incident, Message, RuleResult, ZendeskTicket } from '@shared/types'
+import type { DecisionTrace, Incident, RuleResult, ZendeskTicket } from '@shared/types'
 import { getCustomer } from '../integrations/salesforce.ts'
 import { searchKnowledge, getChunksByIds } from './knowledge.js'
 import { runRulesEngine } from '../rules/engine.ts'
@@ -7,7 +7,7 @@ import { publish } from '../broker/publisher.ts'
 import { getActiveIncidents, formatIncidentMessage } from '../integrations/arkcloud-status.ts'
 import { chat, type OllamaChatMessage } from './ollama.js'
 import { formatRefundEligibilityVerdict } from './refund-eligibility.ts'
-import { getOrCreateSession, appendTurn } from '../store/sessions.ts'
+import { Tracer } from './trace/tracer.ts'
 import { sanitizeForDownstream } from '../util/sanitize.ts'
 
 export type ChatInput = {
@@ -115,34 +115,17 @@ export const runOrchestration = async (
   { sessionId, customerId, message }: ChatInput,
   onToken: (token: string) => void
 ): Promise<ChatResult> => {
-  const startTime = Date.now()
-  const messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-
   const customer = await getCustomer(customerId)
   const knowledgeMatches = await searchKnowledge(message)
   const activeIncidents = await getActiveIncidents()
   const { result: ruleResult, evaluations } = runRulesEngine({ customer, query: message, knowledgeMatches, activeIncidents })
 
-  getOrCreateSession(sessionId, customerId)
-
-  // built before branching so all three outcomes share the same common fields
-  const baseTrace: Omit<DecisionTrace, 'decision' | 'zendeskTicketId' | 'llmPrompt' | 'latencyMs'> = {
-    sessionId,
-    messageId,
-    timestamp: new Date().toISOString(),
-    customerContext: {
-      customerId: customer.customerId,
-      tier: customer.tier,
-      region: customer.region,
-      accountStatus: customer.accountStatus
-    },
-    knowledgeMatches,
-    rulesEvaluated: evaluations
-  }
+  // owns the trace lifecycle for this request: messageId, timing, assembly, and turn persistence
+  const tracer = new Tracer(sessionId, customer, knowledgeMatches, evaluations)
 
   if (ruleResult.action === 'escalate') {
     // stable per-request key — dedupes retries and the consumer so one escalation = one ticket
-    const idempotencyKey = messageId
+    const idempotencyKey = tracer.messageId
     const payload: CreateTicketInput = {
       idempotencyKey,
       customerId,
@@ -159,7 +142,7 @@ export const runOrchestration = async (
     // deliverer — it creates the Zendesk ticket off the queue and backfills the real ZD- id onto this
     // trace. We never call Zendesk in the request path, so the customer always gets a provisional
     // reference here; the real ticket id shows up in the trace/Dashboard once the consumer delivers.
-    const record = publish(payload, { sessionId, messageId })
+    const record = publish(payload, { sessionId, messageId: tracer.messageId })
 
     const ticket: ZendeskTicket = {
       id: `PENDING-${idempotencyKey}`,
@@ -172,11 +155,7 @@ export const runOrchestration = async (
     }
     const reply = `Your request has been escalated to our support team (reference ${ticket.id}). A human agent will follow up within your SLA window — you don't need to do anything further. We apologize for any inconvenience.`
 
-    const trace: DecisionTrace = { ...baseTrace, decision: 'escalate', zendeskTicketId: undefined, latencyMs: Date.now() - startTime }
-
-    const userMsg: Message = { id: `${messageId}-u`, role: 'user', content: message, timestamp: new Date().toISOString() }
-    const assistantMsg: Message = { id: `${messageId}-a`, role: 'assistant', content: reply, timestamp: new Date().toISOString(), trace }
-    appendTurn(sessionId, [userMsg, assistantMsg], trace)
+    const trace = tracer.commit({ userMessage: message, reply, decision: 'escalate' })
 
     return { decision: 'escalate', reply, trace, ticket }
   }
@@ -184,11 +163,7 @@ export const runOrchestration = async (
   if (ruleResult.action === 'route') {
     const incident = activeIncidents.find((activeIncident) => activeIncident.id === ruleResult.metadata.macro)
     const reply = incident ? formatIncidentMessage(incident) : String(ruleResult.metadata.response ?? '')
-    const trace: DecisionTrace = { ...baseTrace, decision: 'route', latencyMs: Date.now() - startTime }
-
-    const userMsg: Message = { id: `${messageId}-u`, role: 'user', content: message, timestamp: new Date().toISOString() }
-    const assistantMsg: Message = { id: `${messageId}-a`, role: 'assistant', content: reply, timestamp: new Date().toISOString(), trace }
-    appendTurn(sessionId, [userMsg, assistantMsg], trace)
+    const trace = tracer.commit({ userMessage: message, reply, decision: 'route' })
 
     return { decision: 'route', reply, trace }
   }
@@ -215,11 +190,7 @@ export const runOrchestration = async (
     onToken(token)
   })
 
-  const trace: DecisionTrace = { ...baseTrace, decision: 'answer', llmPrompt: systemPrompt, latencyMs: Date.now() - startTime }
-
-  const userMsg: Message = { id: `${messageId}-u`, role: 'user', content: message, timestamp: new Date().toISOString() }
-  const assistantMsg: Message = { id: `${messageId}-a`, role: 'assistant', content: fullReply, timestamp: new Date().toISOString(), trace }
-  appendTurn(sessionId, [userMsg, assistantMsg], trace)
+  const trace = tracer.commit({ userMessage: message, reply: fullReply, decision: 'answer', llmPrompt: systemPrompt })
 
   return { decision: 'answer', reply: fullReply, trace }
 }
