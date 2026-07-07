@@ -3,7 +3,7 @@ import { runReconcilerOnce } from './reconciler.ts'
 import { runOrchestration } from './orchestration.ts'
 import { setZendeskDown } from '../store/feature-flags.ts'
 import { resetZendeskResilience } from '../integrations/zendesk.ts'
-import { outboxSnapshot } from '../store/escalation-outbox.ts'
+import { queueSnapshot } from '../store/escalation-queue.ts'
 import { getSession } from '../store/sessions.ts'
 
 // The orchestration path reaches the KB (embeddings) and, on ANSWER, the chat LLM. This test only drives
@@ -18,14 +18,14 @@ vi.mock('./knowledge.js', () => ({
   getChunksByIds: () => []
 }))
 
-describe('reconciler — drains the outbox and backfills the trace once Zendesk recovers', () => {
+describe('reconciler — drains the queue and backfills the trace once Zendesk recovers', () => {
   afterEach(() => {
     setZendeskDown(false)
     resetZendeskResilience()
   })
 
   it('submits a pending escalation and backfills the real ticket id onto the session trace', async () => {
-    // 1. Zendesk down → escalation degrades to a durable pending record with no ticket id
+    // 1. Zendesk down → escalation degrades to a durable ready record with no ticket id
     resetZendeskResilience()
     setZendeskDown(true, 'timeout')
     const result = await runOrchestration(
@@ -34,16 +34,16 @@ describe('reconciler — drains the outbox and backfills the trace once Zendesk 
     )
     const key = result.trace.messageId
     expect(result.trace.zendeskTicketId).toBeUndefined()
-    expect(outboxSnapshot().find((r) => r.idempotencyKey === key)?.status).toBe('pending')
+    expect(queueSnapshot().find((r) => r.idempotencyKey === key)?.status).toBe('ready')
 
-    // 2. Zendesk recovers → reconciler drains the outbox
+    // 2. Zendesk recovers → reconciler drains the queue
     setZendeskDown(false)
     resetZendeskResilience()
     await runReconcilerOnce()
 
-    // 3. the record is submitted with a real ZD- id, backfilled onto the stored trace
-    const record = outboxSnapshot().find((r) => r.idempotencyKey === key)
-    expect(record?.status).toBe('submitted')
+    // 3. the record is acked with a real ZD- id, backfilled onto the stored trace
+    const record = queueSnapshot().find((r) => r.idempotencyKey === key)
+    expect(record?.status).toBe('acked')
     expect(record?.zendeskTicketId).toMatch(/^ZD-\d+$/)
 
     const trace = getSession('test-reconcile')?.traces.find((t) => t.messageId === key)

@@ -3,7 +3,7 @@ import { getCustomer } from '../integrations/salesforce.ts'
 import { searchKnowledge, getChunksByIds } from './knowledge.js'
 import { runRulesEngine } from '../rules/engine.ts'
 import { createTicket, ZendeskUnavailableError, type CreateTicketInput } from '../integrations/zendesk.ts'
-import { enqueue, markSubmitted, recordFailure } from '../store/escalation-outbox.ts'
+import { enqueue, ack, nack } from '../store/escalation-queue.ts'
 import { getActiveIncidents, formatIncidentMessage } from '../integrations/arkcloud-status.ts'
 import { chat, type OllamaChatMessage } from './ollama.js'
 import { formatRefundEligibilityVerdict } from './refund-eligibility.ts'
@@ -158,7 +158,7 @@ export const runOrchestration = async (
     // write-ahead: capture the escalation intent durably BEFORE calling Zendesk, so a backend outage
     // or a crash mid-call can never lose it. The reconciler drains this once Zendesk recovers.
     const now = new Date().toISOString()
-    enqueue({ idempotencyKey, status: 'pending', payload, sessionId, messageId, attempts: 0, createdAt: now, updatedAt: now })
+    enqueue({ idempotencyKey, status: 'ready', payload, sessionId, messageId, attempts: 0, createdAt: now, updatedAt: now })
 
     let ticket: ZendeskTicket
     let reply: string
@@ -166,14 +166,14 @@ export const runOrchestration = async (
 
     try {
       ticket = await createTicket(payload)
-      markSubmitted(idempotencyKey, ticket.id)
+      ack(idempotencyKey, ticket.id)
       zendeskTicketId = ticket.id
       reply = `Your request has been escalated to our support team. A ticket has been created (${ticket.id}) and you will hear from us within your SLA window. We apologize for any inconvenience.`
     } catch (err) {
       if (!(err instanceof ZendeskUnavailableError)) throw err // a real bug should still surface
-      // Zendesk is unreachable — degrade gracefully. The escalation is already durable in the outbox;
+      // Zendesk is unreachable — degrade gracefully. The escalation is already durable in the queue;
       // give the customer an honest provisional reference instead of claiming a ticket exists.
-      recordFailure(idempotencyKey, err.message)
+      nack(idempotencyKey, err.message)
       ticket = { id: `PENDING-${idempotencyKey}`, customerId, sessionId, priority: payload.priority, reason: payload.reason, conversationContext: payload.conversationContext, createdAt: now }
       reply = `Your request has been escalated to our support team (reference ${ticket.id}). A human agent will follow up within your SLA window — you don't need to do anything further. We apologize for any inconvenience.`
       zendeskTicketId = undefined // reconciler backfills the real ID once Zendesk recovers

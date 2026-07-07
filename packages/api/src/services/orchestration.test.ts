@@ -4,7 +4,7 @@ import { buildSystemPrompt, runOrchestration } from './orchestration.ts'
 import { makeCustomer } from '../rules/test-fixtures.ts'
 import { setZendeskDown } from '../store/feature-flags.ts'
 import { resetZendeskResilience } from '../integrations/zendesk.ts'
-import { outboxSnapshot } from '../store/escalation-outbox.ts'
+import { queueSnapshot } from '../store/escalation-queue.ts'
 import { getSession } from '../store/sessions.ts'
 
 // The rules engine computes refund eligibility deterministically (engine.ts returnWindow logic).
@@ -125,9 +125,9 @@ describe('runOrchestration — Zendesk outage degrades gracefully', () => {
     expect(result.ticket?.id).toMatch(/^PENDING-/)
     expect(result.trace.zendeskTicketId).toBeUndefined()
 
-    // the intent is captured durably in the outbox, pending reconciliation
-    const record = outboxSnapshot().find((r) => r.idempotencyKey === result.trace.messageId)
-    expect(record?.status).toBe('pending')
+    // the intent is captured durably in the queue, ready for reconciliation
+    const record = queueSnapshot().find((r) => r.idempotencyKey === result.trace.messageId)
+    expect(record?.status).toBe('ready')
 
     // the turn is still recorded on the session — nothing is silently dropped
     const session = getSession('test-outage')

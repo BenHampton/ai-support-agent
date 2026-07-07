@@ -3,7 +3,7 @@ import { ZENDESK_DOWN_INITIAL } from '../config.ts'
 // Runtime-mutable outage simulation. config exports are `const` (read once at startup), so the live
 // state that the demo toggle (POST /admin/zendesk/down) and tests flip has to live here, not in config.
 // The flag is read INSIDE the Zendesk client so a simulated outage is indistinguishable from a real one
-// and exercises the full timeout → retry → breaker → outbox → reconciler path.
+// and exercises the full timeout → retry → breaker → queue → reconciler path.
 
 // how the simulated backend fails, so each resilience branch can be demoed/tested independently:
 //   'timeout' → fast-fail with a retryable timeout error

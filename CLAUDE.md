@@ -38,7 +38,7 @@ ai-support-agent/
 ├── data/                          # external mock data (read at runtime — swap point for real integrations)
 │   ├── customers.json             # mock Salesforce customers
 │   ├── tickets.json               # ticket-store seed ([] by default)
-│   ├── escalation-outbox.json     # durable escalation queue (write-ahead, survives restart)
+│   ├── escalation-queue.json      # durable escalation queue (write-ahead, survives restart)
 │   └── kb/                        # knowledge-base .md docs
 └── packages/
     ├── shared/
@@ -48,7 +48,7 @@ ai-support-agent/
     │       ├── components/
     │       │   ├── Chat/          # Customer-facing chat UI
     │       │   ├── Dashboard/     # FDE log viewer
-    │       │   ├── Admin/         # Zendesk outage toggle + outbox depth
+    │       │   ├── Admin/         # Zendesk outage toggle + queue depth
     │       │   ├── Tickets/       # escalated-ticket view
     │       │   ├── Landing/       # landing page
     │       │   └── NavBar/        # top-level navigation
@@ -66,7 +66,7 @@ ai-support-agent/
             │   ├── ollama.ts          # embed() and chat() wrappers
             │   ├── knowledge.ts       # chunking, embedding, cosine similarity search
             │   ├── orchestration.ts   # runOrchestration() — full request flow
-            │   ├── reconciler.ts      # drains escalation outbox into Zendesk on recovery
+            │   ├── reconciler.ts      # drains escalation queue into Zendesk on recovery
             │   └── refund-eligibility.ts # deterministic refund verdict formatting
             ├── integrations/
             │   ├── salesforce.ts      # mock CRM lookup (swap for real API here)
@@ -77,7 +77,7 @@ ai-support-agent/
             │   └── rules.yaml         # rule definitions, keywords, thresholds
             ├── store/
             │   ├── sessions.ts        # in-memory session + trace store
-            │   ├── escalation-outbox.ts # durable write-ahead outbox (atomic writes, in-memory mirror)
+            │   ├── escalation-queue.ts # durable escalation queue — enqueue/ack/nack/deadLetter (atomic writes)
             │   └── feature-flags.ts   # runtime outage-simulation flag read inside the Zendesk client
             ├── util/                  # sanitize() and other cross-cutting helpers
             ├── config.ts              # DATA_DIR, timeouts, retry/breaker thresholds

@@ -54,7 +54,7 @@ export const fetchTickets = async (): Promise<ZendeskTicket[]> => {
 }
 
 export type ZendeskFailureMode = 'timeout' | '503' | 'hang'
-export type ZendeskAdminStatus = { down: boolean; mode: ZendeskFailureMode; outboxDepth: number }
+export type ZendeskAdminStatus = { down: boolean; mode: ZendeskFailureMode; queueDepth: number }
 
 export const fetchZendeskStatus = async (): Promise<ZendeskAdminStatus> => {
   const res = await fetch('/api/admin/zendesk/status')

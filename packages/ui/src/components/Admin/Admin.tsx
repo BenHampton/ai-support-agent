@@ -78,7 +78,7 @@ export const Admin = (): JSX.Element => {
               </div>
               <div className={styles.metaRow}>
                 <dt className={styles.metaKey}>Queued escalations</dt>
-                <dd className={styles.metaVal}>{status.outboxDepth}</dd>
+                <dd className={styles.metaVal}>{status.queueDepth}</dd>
               </div>
             </dl>
 

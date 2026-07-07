@@ -17,7 +17,7 @@ import { isZendeskDown, getZendeskFailureMode } from '../store/feature-flags.ts'
 const ticketStore: ZendeskTicket[] = JSON.parse(readFileSync(join(DATA_DIR, 'tickets.json'), 'utf-8')) as ZendeskTicket[]
 
 // idempotency: maps a caller-supplied key to the ticket it produced, so a retry (or the reconciler
-// re-submitting an outbox record) returns the SAME ticket instead of creating a duplicate.
+// re-submitting a queued record) returns the SAME ticket instead of creating a duplicate.
 const ticketsByKey = new Map<string, ZendeskTicket>()
 
 let ticketCounter = 1000 // starts high to produce realistic-looking IDs (ZD-1001, ZD-1002, …)
@@ -48,7 +48,7 @@ export class ZendeskUnavailableError extends Error {
 
 // --- circuit breaker -------------------------------------------------------------------------------
 // Once Zendesk is known-down, stop paying the full timeout+retry budget on every escalation — trip open
-// after N consecutive failures and fail fast to the outbox for a cooldown, then let one probe through.
+// after N consecutive failures and fail fast to the queue for a cooldown, then let one probe through.
 let consecutiveFailures = 0
 let openedAt = 0
 
@@ -111,7 +111,7 @@ const doCreate = (input: CreateTicketInput): ZendeskTicket => {
 }
 
 // single network boundary. The outage flag injects failures indistinguishable from a real Zendesk fault
-// so the whole resilience path (timeout/retry/breaker/outbox) is exercised in the demo and tests.
+// so the whole resilience path (timeout/retry/breaker/queue) is exercised in the demo and tests.
 const attemptCreate = (input: CreateTicketInput): Promise<ZendeskTicket> => {
   if (isZendeskDown()) {
     switch (getZendeskFailureMode()) {
@@ -127,7 +127,7 @@ const attemptCreate = (input: CreateTicketInput): Promise<ZendeskTicket> => {
 }
 
 // Create a ticket with production-grade guardrails. Throws ZendeskUnavailableError when the backend is
-// unreachable after retries (or the breaker is open); callers fall back to the durable outbox.
+// unreachable after retries (or the breaker is open); callers fall back to the durable queue.
 export const createTicket = async (input: CreateTicketInput): Promise<ZendeskTicket> => {
   if (breakerOpen()) throw new ZendeskUnavailableError('unavailable', 'Zendesk circuit breaker open')
 
